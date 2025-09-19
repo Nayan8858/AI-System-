@@ -1,6 +1,19 @@
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleAuthAction = () => {
+    if (user) {
+      signOut();
+    } else {
+      navigate("/auth");
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,12 +41,25 @@ const Header = () => {
 
           {/* Auth buttons */}
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" className="text-foreground hover:text-primary">
-              Login
-            </Button>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              Sign Up
-            </Button>
+            {user ? (
+              <>
+                <span className="text-sm text-muted-foreground">
+                  {user.email}
+                </span>
+                <Button variant="ghost" onClick={signOut}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => navigate("/auth")}>
+                  Login
+                </Button>
+                <Button onClick={() => navigate("/auth")}>
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
