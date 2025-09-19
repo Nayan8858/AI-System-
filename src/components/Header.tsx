@@ -1,18 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 
 const Header = () => {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
-
-  const handleAuthAction = () => {
-    if (user) {
-      signOut();
-    } else {
-      navigate("/auth");
-    }
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
@@ -44,20 +35,24 @@ const Header = () => {
             {user ? (
               <>
                 <span className="text-sm text-muted-foreground">
-                  {user.email}
+                  {user.emailAddresses[0]?.emailAddress}
                 </span>
-                <Button variant="ghost" onClick={signOut}>
+                <Button variant="ghost" onClick={() => signOut()}>
                   Logout
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => navigate("/auth")}>
-                  Login
-                </Button>
-                <Button onClick={() => navigate("/auth")}>
-                  Sign Up
-                </Button>
+                <SignInButton mode="modal">
+                  <Button variant="ghost">
+                    Login
+                  </Button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <Button>
+                    Sign Up
+                  </Button>
+                </SignUpButton>
               </>
             )}
           </div>
