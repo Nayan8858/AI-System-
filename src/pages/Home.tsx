@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -24,8 +24,19 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const Home = () => {
   const [message, setMessage] = useState("");
   const { user } = useAuth();
-  const { messages, isLoading, sendMessage } = useChat();
+  const { messages, isLoading, sendMessage, typingMessage } = useChat();
   const isMobile = useIsMobile();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (messages.length > 0 || isLoading || typingMessage) {
+      scrollToBottom();
+    }
+  }, [messages, isLoading, typingMessage]);
 
   const actionCards = [
     {
@@ -124,7 +135,7 @@ const Home = () => {
             ) : (
               <div className="max-w-4xl mx-auto space-y-6">
                 {messages.map((msg, index) => (
-                  <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
                     <div className={`max-w-[80%] p-4 rounded-lg ${
                       msg.role === 'user' 
                         ? 'bg-primary text-primary-foreground' 
@@ -134,13 +145,34 @@ const Home = () => {
                     </div>
                   </div>
                 ))}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted text-muted-foreground p-4 rounded-lg">
-                      <p>Thinking...</p>
+                
+                {/* Typing Message */}
+                {typingMessage && (
+                  <div className="flex justify-start animate-fade-in">
+                    <div className="bg-muted text-muted-foreground p-4 rounded-lg max-w-[80%]">
+                      <p className="whitespace-pre-wrap">{typingMessage}</p>
+                      <span className="inline-block w-2 h-5 bg-muted-foreground animate-pulse ml-1"></span>
                     </div>
                   </div>
                 )}
+                
+                {/* Loading Animation */}
+                {isLoading && !typingMessage && (
+                  <div className="flex justify-start animate-fade-in">
+                    <div className="bg-muted text-muted-foreground p-4 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse"></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                        </div>
+                        <span className="text-sm">AI is thinking...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div ref={messagesEndRef} />
               </div>
             )}
           </div>

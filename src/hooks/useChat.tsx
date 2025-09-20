@@ -10,6 +10,7 @@ interface Message {
 export const useChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [typingMessage, setTypingMessage] = useState('');
 
   const sendMessage = async (message: string) => {
     if (!message.trim()) return;
@@ -33,13 +34,27 @@ export const useChat = () => {
 
       if (error) throw error;
 
+      // Typewriter effect for AI response
+      const fullResponse = data.reply;
+      let currentText = '';
+      
+      for (let i = 0; i < fullResponse.length; i++) {
+        currentText += fullResponse[i];
+        setTypingMessage(currentText);
+        
+        // Add delay for typing effect
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+      
+      // After typing is complete, add to messages and clear typing
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.reply,
+        content: fullResponse,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      setTypingMessage('');
     } catch (error) {
       console.error('Chat error:', error);
       const errorMessage: Message = {
@@ -55,11 +70,13 @@ export const useChat = () => {
 
   const clearChat = () => {
     setMessages([]);
+    setTypingMessage('');
   };
 
   return {
     messages,
     isLoading,
+    typingMessage,
     sendMessage,
     clearChat,
   };
