@@ -24,7 +24,7 @@ export const useChat = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('chat-deepseek', {
+      const { data, error } = await supabase.functions.invoke('chat-gemini', {
         body: {
           message,
           conversation: messages.map(m => ({ role: m.role, content: m.content }))
