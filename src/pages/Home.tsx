@@ -15,10 +15,12 @@ import {
   Menu,
   Crown
 } from "lucide-react";
+import { UserButton } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import MainMenu from "@/components/MainMenu";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Home = () => {
@@ -89,10 +91,25 @@ const Home = () => {
             </div>
           </div>
           
-          <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-3 flex items-center space-x-1">
-            <Crown className="w-3 h-3" />
-            <span>Upgrade Now</span>
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-3 flex items-center space-x-1">
+              <Crown className="w-3 h-3" />
+              <span>Upgrade Now</span>
+            </Button>
+            <UserButton
+              appearance={{
+                baseTheme: undefined,
+                variables: {
+                  colorPrimary: "hsl(217 91% 60%)",
+                },
+                elements: {
+                  userButtonAvatarBox: "w-8 h-8",
+                }
+              }}
+              userProfileMode="modal"
+              afterSignOutUrl="/"
+            />
+          </div>
         </div>
 
         {/* Sidebar */}
@@ -226,6 +243,7 @@ const Home = () => {
           ))}
         </div>
       </div>
+      <MainMenu />
     </SidebarProvider>
   );
 };

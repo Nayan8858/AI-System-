@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { SignInButton, SignUpButton } from "@clerk/clerk-react";
+import { SignInButton, SignUpButton, UserButton } from "@clerk/clerk-react";
 
 const Header = () => {
   const { user, signOut } = useAuth();
@@ -33,14 +33,19 @@ const Header = () => {
           {/* Auth buttons */}
           <div className="flex items-center space-x-4">
             {user ? (
-              <>
-                <span className="text-sm text-muted-foreground">
-                  {user.emailAddresses[0]?.emailAddress}
-                </span>
-                <Button variant="ghost" onClick={() => signOut()}>
-                  Logout
-                </Button>
-              </>
+              <UserButton
+                appearance={{
+                  baseTheme: undefined,
+                  variables: {
+                    colorPrimary: "hsl(217 91% 60%)",
+                  },
+                  elements: {
+                    userButtonAvatarBox: "w-10 h-10",
+                  }
+                }}
+                userProfileMode="modal"
+                afterSignOutUrl="/"
+              />
             ) : (
               <>
                 <SignInButton mode="modal">
