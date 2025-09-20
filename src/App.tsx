@@ -10,7 +10,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 // Add your Clerk publishable key here
-const PUBLISHABLE_KEY = "pk_test_YWN0aXZlLXBlbGljYW4tOTEuY2xlcmsuYWNjb3VudHMuZGV2JA";
+const PUBLISHABLE_KEY = "pk_test_ZGVhci1zd2FuLTY4LmNsZXJrLmFjY291bnRzLmRldiQ";
 
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Publishable Key")
