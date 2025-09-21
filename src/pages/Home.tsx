@@ -92,7 +92,11 @@ const Home = () => {
           </div>
           
           <div className="flex items-center space-x-2">
-            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-3 flex items-center space-x-1">
+            <Button 
+              size="sm" 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-3 flex items-center space-x-1"
+              onClick={() => navigate('/pricing')}
+            >
               <Crown className="w-3 h-3" />
               <span>Upgrade Now</span>
             </Button>
