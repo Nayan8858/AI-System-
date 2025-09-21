@@ -18,6 +18,11 @@ import {
 import { UserButton } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import MainMenu from "@/components/MainMenu";
+import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import MainMenu from "@/components/MainMenu";
@@ -28,6 +33,7 @@ const Home = () => {
   const { user } = useAuth();
   const { messages, isLoading, sendMessage, typingMessage } = useChat();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
