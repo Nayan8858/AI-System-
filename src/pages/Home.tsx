@@ -23,10 +23,6 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import MainMenu from "@/components/MainMenu";
 import { useNavigate } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import MainMenu from "@/components/MainMenu";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const Home = () => {
   const [message, setMessage] = useState("");
