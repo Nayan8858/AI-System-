@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
   Image, 
   Code, 
@@ -13,22 +13,43 @@ import {
   Paperclip,
   Send,
   Menu,
-  Crown
+  Crown,
+  Square
 } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useChat } from "@/hooks/useChat";
+import { useEnhancedChat } from "@/hooks/useEnhancedChat";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import MainMenu from "@/components/MainMenu";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import ContextMenu from "@/components/ui/context-menu-custom";
+import { FeatureGate } from "@/components/FeatureGate";
 
 const Home = () => {
   const [message, setMessage] = useState("");
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    messageId: string;
+    content: string;
+  } | null>(null);
   const { user } = useAuth();
-  const { messages, isLoading, sendMessage, typingMessage } = useChat();
+  const { 
+    messages, 
+    isLoading, 
+    typingMessage, 
+    isGenerating,
+    sendMessage, 
+    stopGeneration,
+    regenerateMessage,
+    copyMessage,
+    clearChat 
+  } = useEnhancedChat();
+  const { subscribed, currentPlan, isLoading: subscriptionLoading } = useSubscription();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,18 +64,26 @@ const Home = () => {
     }
   }, [messages, isLoading, typingMessage]);
 
-  // Check for successful payment on page load
+  // Payment success handling with subscription details
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('payment') === 'success') {
+    const paymentSuccess = urlParams.get('payment');
+    const planName = urlParams.get('plan');
+    const planPrice = urlParams.get('price');
+    
+    if (paymentSuccess === 'success') {
       // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      // Show success message
+      // Show success message with plan details
       setTimeout(() => {
+        const successMessage = planName && planPrice 
+          ? `You have Done Your Payment $${planPrice} And ${planName}.`
+          : "Welcome to your new plan! Your subscription is now active.";
+          
         toast({
           title: "Payment Successful! 🎉",
-          description: "Welcome to your new plan! Your subscription is now active.",
+          description: successMessage,
         });
       }, 1000);
     }
@@ -86,14 +115,33 @@ const Home = () => {
   ];
 
   const handleSendMessage = async () => {
-    if (!message.trim()) return;
-    await sendMessage(message);
-    setMessage("");
+    if (message.trim() && !isLoading) {
+      await sendMessage(message);
+      setMessage('');
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, messageId: string, content: string) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.pageX,
+      y: e.pageY,
+      messageId,
+      content,
+    });
+  };
+
+  const handleSendClick = () => {
+    if (isGenerating) {
+      stopGeneration();
+    } else {
       handleSendMessage();
     }
   };
@@ -112,14 +160,27 @@ const Home = () => {
           </div>
           
           <div className="flex items-center space-x-2">
-            <Button 
-              size="sm" 
-              className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-3 flex items-center space-x-1"
-              onClick={() => navigate('/pricing')}
-            >
-              <Crown className="w-3 h-3" />
-              <span>Upgrade Now</span>
-            </Button>
+            {!subscribed && !subscriptionLoading && (
+              <Button 
+                size="sm" 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs px-3 flex items-center space-x-1"
+                onClick={() => navigate('/pricing')}
+              >
+                <Crown className="w-3 h-3" />
+                <span>Upgrade Now</span>
+              </Button>
+            )}
+            {subscribed && currentPlan && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="text-xs px-3 flex items-center space-x-1"
+                disabled
+              >
+                <Crown className="w-3 h-3 text-yellow-500" />
+                <span>{currentPlan.name}</span>
+              </Button>
+            )}
             <UserButton
               appearance={{
                 baseTheme: undefined,
@@ -158,34 +219,62 @@ const Home = () => {
                 {/* Action Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
                   {actionCards.map((card, index) => (
-                    <Card 
+                    <FeatureGate 
                       key={index}
-                      className="p-6 hover:shadow-md transition-shadow cursor-pointer border border-border bg-card"
-                      onClick={() => setMessage(card.description)}
+                      requiredPlan={card.title === 'Create Image' ? 'basic' : 'free'}
+                      feature={card.title.toLowerCase()}
+                      showUpgrade={false}
                     >
-                      <div className="flex flex-col items-center space-y-3 text-center">
-                        <div className="p-3 rounded-lg bg-muted">
-                          <card.icon className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                        <h3 className="font-medium text-card-foreground">{card.title}</h3>
-                      </div>
-                    </Card>
+                      <Card 
+                        className="p-6 hover:shadow-md transition-shadow cursor-pointer border border-border bg-card"
+                        onClick={() => setMessage(card.description)}
+                      >
+                        <CardContent className="flex flex-col items-center space-y-3 text-center p-0">
+                          <div className="p-3 rounded-lg bg-muted">
+                            <card.icon className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                          <h3 className="font-medium text-card-foreground">{card.title}</h3>
+                        </CardContent>
+                      </Card>
+                    </FeatureGate>
                   ))}
                 </div>
               </div>
             ) : (
               <div className="max-w-4xl mx-auto space-y-6">
                 {messages.map((msg, index) => (
-                  <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                    <div className={`max-w-[80%] p-4 rounded-lg ${
-                      msg.role === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted text-muted-foreground'
-                    }`}>
+                  <div 
+                    key={msg.id || index} 
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                  >
+                    <div 
+                      className={`max-w-[80%] p-4 rounded-lg cursor-pointer ${
+                        msg.role === 'user' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                      onContextMenu={(e) => msg.role === 'assistant' && handleContextMenu(e, msg.id || `${index}`, msg.content)}
+                      onTouchStart={(e) => {
+                        if (msg.role === 'assistant') {
+                          const timer = setTimeout(() => {
+                            const touch = e.touches[0];
+                            handleContextMenu(e as any, msg.id || `${index}`, msg.content);
+                          }, 500);
+                          
+                          const clearTimer = () => clearTimeout(timer);
+                          e.currentTarget.addEventListener('touchend', clearTimer, { once: true });
+                          e.currentTarget.addEventListener('touchmove', clearTimer, { once: true });
+                        }
+                      }}
+                    >
                       <p className="whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-xs opacity-70 mt-2">
+                        {msg.timestamp.toLocaleTimeString()}
+                      </p>
                     </div>
                   </div>
                 ))}
+                
                 
                 {/* Typing Message */}
                 {typingMessage && (
@@ -241,10 +330,14 @@ const Home = () => {
                   <Button
                     size="icon"
                     className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground"
-                    disabled={!message.trim() || isLoading}
-                    onClick={handleSendMessage}
+                    disabled={!message.trim() && !isGenerating}
+                    onClick={handleSendClick}
                   >
-                    <Send className="w-4 h-4" />
+                    {isGenerating ? (
+                      <Square className="w-4 h-4" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -267,6 +360,18 @@ const Home = () => {
           ))}
         </div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onCopy={() => copyMessage(contextMenu.content)}
+          onRegenerate={() => regenerateMessage(contextMenu.messageId)}
+        />
+      )}
+      
       <MainMenu />
     </SidebarProvider>
   );

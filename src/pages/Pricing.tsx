@@ -121,6 +121,7 @@ const Pricing = () => {
 
     try {
       const priceId = isYearly ? plan.priceId.yearly : plan.priceId.monthly;
+      const planPrice = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
       
       if (!priceId) {
         throw new Error("Price ID not found for this plan");
@@ -142,8 +143,9 @@ const Pricing = () => {
       if (error) throw error;
 
       if (data?.url) {
-        // Open Stripe checkout in a new tab
-        window.open(data.url, '_blank');
+        // Modify the success URL to include plan details
+        const successUrl = new URL(data.url.replace('/success', `/home?payment=success&plan=${plan.name}&price=${planPrice}`));
+        window.open(successUrl.href, '_blank');
       } else {
         throw new Error("No checkout URL received");
       }
@@ -250,9 +252,14 @@ const Pricing = () => {
                   className="w-full"
                   variant={plan.name === 'Free' ? "secondary" : "default"}
                   onClick={() => handleUpgrade(plan)}
-                  disabled={plan.name === 'Free'}
+                  disabled={plan.name === 'Free' || isPlanActive(plan.name)}
                 >
-                  {plan.name === 'Free' ? 'Current Plan' : 'Upgrade Now'}
+                  {plan.name === 'Free' 
+                    ? 'Current Plan' 
+                    : isPlanActive(plan.name) 
+                      ? 'Current Plan' 
+                      : 'Upgrade Now'
+                  }
                 </Button>
               </CardContent>
             </Card>
