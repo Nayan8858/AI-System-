@@ -21,31 +21,18 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    // Create Supabase client using the anon key for user authentication
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-
-    // Retrieve authenticated user
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    // Get the request body
+    const { priceId, userEmail, userId } = await req.json();
     
-    if (!user?.email) {
-      throw new Error("User not authenticated or email not available");
-    }
-    
-    logStep("User authenticated", { userId: user.id, email: user.email });
-
-    // Get the price ID from the request body
-    const { priceId } = await req.json();
     if (!priceId) {
       throw new Error("Price ID is required");
     }
     
-    logStep("Price ID received", { priceId });
+    if (!userEmail || !userId) {
+      throw new Error("User email and ID are required");
+    }
+    
+    logStep("Request data received", { priceId, userEmail, userId });
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -53,7 +40,7 @@ serve(async (req) => {
     });
 
     // Check if a Stripe customer record exists for this user
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
     let customerId;
     
     if (customers.data.length > 0) {
@@ -66,7 +53,7 @@ serve(async (req) => {
     // Create a subscription checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
           price: priceId,
@@ -77,8 +64,8 @@ serve(async (req) => {
       success_url: `${req.headers.get("origin")}/?payment=success`,
       cancel_url: `${req.headers.get("origin")}/pricing`,
       metadata: {
-        user_id: user.id,
-        user_email: user.email,
+        user_id: userId,
+        user_email: userEmail,
       },
     });
 

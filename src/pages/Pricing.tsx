@@ -132,7 +132,11 @@ const Pricing = () => {
       });
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId }
+        body: { 
+          priceId,
+          userEmail: user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress,
+          userId: user.id
+        }
       });
 
       if (error) throw error;
