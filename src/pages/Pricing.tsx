@@ -46,7 +46,7 @@ const plans: PricingPlan[] = [
     name: 'Basic',
     monthlyPrice: 5,
     yearlyPrice: 54, // 10% discount: $5 * 12 * 0.9 = $54
-    priceId: { monthly: 'price_basic_monthly', yearly: 'price_basic_yearly' },
+    priceId: { monthly: 'price_1S9mrH2KLXEX1a3ocfqvxk43', yearly: 'price_1S9mrH2KLXEX1a3ocfqvxk43' },
     features: [
       { name: 'Hero AI access', included: true },
       { name: 'Limited chat history (100 messages)', included: true },
@@ -65,7 +65,7 @@ const plans: PricingPlan[] = [
     name: 'Premium',
     monthlyPrice: 15.99,
     yearlyPrice: 172.70, // 10% discount: $15.99 * 12 * 0.9 = $172.70
-    priceId: { monthly: 'price_premium_monthly', yearly: 'price_premium_yearly' },
+    priceId: { monthly: 'price_1S9mrb2KLXEX1a3oKk38psuM', yearly: 'price_1S9mrb2KLXEX1a3oKk38psuM' },
     popular: true,
     features: [
       { name: 'PRO AI access', included: true },
@@ -111,8 +111,25 @@ const Pricing = () => {
       return;
     }
 
+    if (plan.name === 'Free') {
+      toast({
+        title: "Already Active",
+        description: "You're already on the free plan.",
+      });
+      return;
+    }
+
     try {
       const priceId = isYearly ? plan.priceId.yearly : plan.priceId.monthly;
+      
+      if (!priceId) {
+        throw new Error("Price ID not found for this plan");
+      }
+      
+      toast({
+        title: "Redirecting to Stripe...",
+        description: "Please wait while we set up your subscription.",
+      });
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId }
@@ -121,13 +138,16 @@ const Pricing = () => {
       if (error) throw error;
 
       if (data?.url) {
+        // Open Stripe checkout in a new tab
         window.open(data.url, '_blank');
+      } else {
+        throw new Error("No checkout URL received");
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
       toast({
         title: "Error",
-        description: "Failed to initiate checkout. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to initiate checkout. Please try again.",
         variant: "destructive",
       });
     }
@@ -224,11 +244,11 @@ const Pricing = () => {
                 </ul>
                 <Button 
                   className="w-full"
-                  variant={isPlanActive(plan.name) ? "secondary" : "default"}
+                  variant={plan.name === 'Free' ? "secondary" : "default"}
                   onClick={() => handleUpgrade(plan)}
-                  disabled={plan.name === 'Free' || isPlanActive(plan.name)}
+                  disabled={plan.name === 'Free'}
                 >
-                  {isPlanActive(plan.name) ? 'Activated' : 'Upgrade'}
+                  {plan.name === 'Free' ? 'Current Plan' : 'Upgrade Now'}
                 </Button>
               </CardContent>
             </Card>

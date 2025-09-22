@@ -23,6 +23,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import MainMenu from "@/components/MainMenu";
 import { useNavigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 const Home = () => {
   const [message, setMessage] = useState("");
@@ -41,6 +42,23 @@ const Home = () => {
       scrollToBottom();
     }
   }, [messages, isLoading, typingMessage]);
+
+  // Check for successful payment on page load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'success') {
+      // Clear the URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Show success message
+      setTimeout(() => {
+        toast({
+          title: "Payment Successful! 🎉",
+          description: "Welcome to your new plan! Your subscription is now active.",
+        });
+      }, 1000);
+    }
+  }, []);
 
   const actionCards = [
     {
