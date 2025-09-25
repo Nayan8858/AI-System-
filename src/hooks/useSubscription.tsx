@@ -138,6 +138,11 @@ export const useSubscription = () => {
   }, [currentPlan]);
 
   const canPerformAction = useCallback((requiredPlan: keyof typeof subscriptionPlans) => {
+    // Always allow free tier access for basic functionality
+    if (requiredPlan === 'free') {
+      return true;
+    }
+    
     const planHierarchy = ['free', 'basic', 'premium'];
     const currentIndex = planHierarchy.indexOf(subscriptionStatus.plan);
     const requiredIndex = planHierarchy.indexOf(requiredPlan);

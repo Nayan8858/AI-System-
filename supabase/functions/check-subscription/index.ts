@@ -63,8 +63,15 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
+      // Safe date handling to prevent "Invalid time value" errors
+      const periodEnd = subscription.current_period_end;
+      if (periodEnd && typeof periodEnd === 'number') {
+        subscriptionEnd = new Date(periodEnd * 1000).toISOString();
+        logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
+      } else {
+        logStep("Active subscription found but no valid end date", { subscriptionId: subscription.id });
+        subscriptionEnd = null;
+      }
       productId = subscription.items.data[0].price.product;
       logStep("Determined subscription product", { productId });
     } else {

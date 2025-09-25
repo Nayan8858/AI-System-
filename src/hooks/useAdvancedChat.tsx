@@ -27,7 +27,7 @@ export const useAdvancedChat = () => {
   const [isSearching, setIsSearching] = useState(false);
   
   const abortControllerRef = useRef<AbortController | null>(null);
-  const { canPerformAction, currentPlan } = useSubscription();
+  const { canPerformAction, currentPlan, isLoading: subscriptionLoading } = useSubscription();
 
   const generateMessageId = () => `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -42,10 +42,22 @@ export const useAdvancedChat = () => {
   };
 
   const sendMessage = async (message: string) => {
+    console.log('🚀 SendMessage called with:', message);
     if (!message.trim()) return;
 
-    // Check access permissions
-    if (!canPerformAction('free')) {
+    // Debug subscription status
+    console.log('📊 Current subscription status:', { 
+      canPerform: canPerformAction('free'),
+      currentPlan: currentPlan,
+      isLoadingSubscription: subscriptionLoading 
+    });
+
+    // Check access permissions - Allow if user is authenticated or has free access
+    const hasAccess = canPerformAction('free');
+    console.log('🔐 Access check result:', hasAccess);
+    
+    if (!hasAccess) {
+      console.log('❌ Access denied, showing toast');
       toast({
         title: "Access Denied",
         description: "Please sign in to use the chat feature.",
@@ -53,6 +65,8 @@ export const useAdvancedChat = () => {
       });
       return;
     }
+
+    console.log('✅ Access granted, proceeding with message send');
 
     // Handle image search mode
     if (imageSearchActive) {
@@ -75,14 +89,17 @@ export const useAdvancedChat = () => {
     abortControllerRef.current = new AbortController();
 
     try {
+      console.log('📤 Starting API call, mode:', chatMode);
       let response;
       
       if (chatMode === 'image-generator') {
         // Generate image
+        console.log('🎨 Calling generate-image function');
         response = await supabase.functions.invoke('generate-image', {
           body: { prompt: message }
         });
         
+        console.log('🎨 Generate-image response:', response);
         if (response.error) throw response.error;
         
         const assistantMessage: Message = {
@@ -125,6 +142,7 @@ export const useAdvancedChat = () => {
         setMessages(prev => [...prev, assistantMessage]);
       } else {
         // Regular chat or reasoning mode
+        console.log('💬 Calling chat-openai function');
         response = await supabase.functions.invoke('chat-openai', {
           body: {
             message,
@@ -134,6 +152,7 @@ export const useAdvancedChat = () => {
           }
         });
         
+        console.log('💬 Chat-openai response:', response);
         if (response.error) throw response.error;
 
         // Typewriter effect
