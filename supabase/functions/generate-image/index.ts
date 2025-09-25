@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,37 +14,16 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, size = "1024x1024" } = await req.json();
-
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-image-1',
-        prompt: prompt,
-        n: 1,
-        size: size,
-        quality: 'high',
-        response_format: 'b64_json'
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenAI Image API error:', errorData);
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const imageData = data.data[0].b64_json;
-
+    const { prompt } = await req.json();
+    
+    // Gemini doesn't support image generation
+    console.log('Image generation requested but Gemini API does not support image generation');
+    
     return new Response(JSON.stringify({ 
-      image: `data:image/png;base64,${imageData}`,
-      revised_prompt: data.data[0].revised_prompt || prompt
+      error: "Image generation is not supported with Gemini API. Gemini specializes in text generation and analysis.",
+      message: "Please use text-based queries instead, or consider switching to a different AI service that supports image generation."
     }), {
+      status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

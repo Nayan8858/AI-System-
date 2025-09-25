@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,8 +16,8 @@ serve(async (req) => {
   try {
     const { message, conversation = [], mode = 'normal', imageData = null } = await req.json();
 
-    // Convert conversation to OpenAI format
-    const messages = [];
+    // Convert conversation to Gemini format
+    const contents = [];
     
     // Add system message based on mode
     let systemMessage = 'You are NayandeepGPT, a helpful AI assistant. Be concise and helpful.';
@@ -37,69 +37,64 @@ serve(async (req) => {
         break;
     }
     
-    messages.push({
-      role: 'system',
-      content: systemMessage
+    // Add system message as first user message and model response
+    contents.push({
+      role: 'user',
+      parts: [{ text: systemMessage }]
+    });
+    contents.push({
+      role: 'model',
+      parts: [{ text: 'I understand. I\'ll help you accordingly as NayandeepGPT.' }]
     });
     
     // Add conversation history
     for (const msg of conversation) {
-      messages.push({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
+      contents.push({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
       });
     }
     
-    // Add current message with image if provided
-    const currentMessage = {
+    // Add current message (note about image limitation)
+    const messageText = imageData 
+      ? `${message} (Note: An image was uploaded but cannot be processed with Gemini API)`
+      : message;
+      
+    contents.push({
       role: 'user',
-      content: imageData ? [
-        { type: 'text', text: message },
-        { type: 'image_url', image_url: { url: imageData } }
-      ] : message
-    };
-    
-    messages.push(currentMessage);
+      parts: [{ text: messageText }]
+    });
 
-    // Choose model based on whether image is included
-    const model = imageData ? 'gpt-4o' : 'gpt-5-2025-08-07';
-    
-    const requestBody: any = {
-      model: model,
-      messages: messages,
-    };
-
-    // Add parameters based on model
-    if (model === 'gpt-5-2025-08-07') {
-      requestBody.max_completion_tokens = 1000;
-    } else {
-      requestBody.max_tokens = 1000;
-      requestBody.temperature = 0.7;
-    }
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        contents: contents,
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1000,
+        }
+      }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('OpenAI API error:', errorData);
+      console.error('Gemini API error:', errorData);
       throw new Error(`API request failed: ${response.status}`);
     }
 
     const data = await response.json();
-    const reply = data.choices[0].message.content;
+    const reply = data.candidates[0].content.parts[0].text;
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in chat-openai function:', error);
+    console.error('Error in chat-gemini function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
