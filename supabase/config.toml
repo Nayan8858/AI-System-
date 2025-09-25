@@ -1,7 +1,26 @@
 project_id = "wagifjfowxclsowbmhrj"
 
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
 [functions.create-checkout]
 verify_jwt = false
 
 [functions.check-subscription]
+verify_jwt = false
+
+[functions.chat-openai]
+verify_jwt = false
+
+[functions.search-images]
+verify_jwt = false
+
+[functions.web-search]
+verify_jwt = false
+
+[functions.generate-image]
 verify_jwt = false

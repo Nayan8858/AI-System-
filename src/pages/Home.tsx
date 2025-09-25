@@ -1,24 +1,26 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { 
-  Image, 
-  Code, 
-  FileText,
+  Link, 
+  Upload, 
+  Search, 
+  X, 
+  Square, 
+  Send,
+  Crown,
   Lightbulb,
   Diamond,
-  Search,
-  Globe,
-  Paperclip,
-  Send,
-  Menu,
-  Crown,
-  Square
+  Globe
 } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useEnhancedChat } from "@/hooks/useEnhancedChat";
+import { useAdvancedChat } from "@/hooks/useAdvancedChat";
+import ImageUpload from "@/components/ImageUpload";
+import ImageSearchResults from "@/components/ImageSearchResults";
+import ChatModeSelector from "@/components/ChatModeSelector";
+import AttachmentMenu from "@/components/AttachmentMenu";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -43,12 +45,22 @@ const Home = () => {
     isLoading, 
     typingMessage, 
     isGenerating,
+    chatMode,
+    setChatMode,
+    uploadedImage,
+    imageSearchActive,
+    setImageSearchActive,
+    searchResults,
+    isSearching,
     sendMessage, 
     stopGeneration,
+    uploadImage,
+    removeUploadedImage,
+    downloadImage,
     regenerateMessage,
     copyMessage,
     clearChat 
-  } = useEnhancedChat();
+  } = useAdvancedChat();
   const { subscribed, currentPlan, isLoading: subscriptionLoading } = useSubscription();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -91,17 +103,17 @@ const Home = () => {
 
   const actionCards = [
     {
-      icon: Image,
+      icon: () => <span className="text-2xl">🖼️</span>,
       title: "Create Image",
       description: "Generate images from text descriptions"
     },
     {
-      icon: Code,
+      icon: () => <span className="text-2xl">💻</span>,
       title: "Generate Code",
       description: "Write and debug code in multiple languages"
     },
     {
-      icon: FileText,
+      icon: () => <span className="text-2xl">📄</span>,
       title: "Summarize Text",
       description: "Condense long content into key points"
     }
@@ -231,7 +243,7 @@ const Home = () => {
                       >
                         <CardContent className="flex flex-col items-center space-y-3 text-center p-0">
                           <div className="p-3 rounded-lg bg-muted">
-                            <card.icon className="w-6 h-6 text-muted-foreground" />
+                            <card.icon />
                           </div>
                           <h3 className="font-medium text-card-foreground">{card.title}</h3>
                         </CardContent>
@@ -266,8 +278,41 @@ const Home = () => {
                           e.currentTarget.addEventListener('touchmove', clearTimer, { once: true });
                         }
                       }}
-                    >
+                     >
                       <p className="whitespace-pre-wrap">{msg.content}</p>
+                      
+                      {/* Show uploaded image */}
+                      {msg.image && (
+                        <img 
+                          src={msg.image} 
+                          alt="Uploaded" 
+                          className="max-w-48 rounded-lg mt-2 border border-border"
+                        />
+                      )}
+                      
+                      {/* Show generated image */}
+                      {msg.generatedImage && (
+                        <img 
+                          src={msg.generatedImage} 
+                          alt="Generated" 
+                          className="max-w-64 rounded-lg mt-2 border border-border cursor-pointer"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = msg.generatedImage!;
+                            link.download = `generated-image-${Date.now()}.png`;
+                            link.click();
+                          }}
+                        />
+                      )}
+                      
+                      {/* Show image search results */}
+                      {msg.searchResults && Array.isArray(msg.searchResults) && msg.searchResults.length > 0 && (
+                        <ImageSearchResults 
+                          results={msg.searchResults} 
+                          onDownload={downloadImage}
+                        />
+                      )}
+                      
                       <p className="text-xs opacity-70 mt-2">
                         {msg.timestamp.toLocaleTimeString()}
                       </p>
@@ -276,7 +321,7 @@ const Home = () => {
                 ))}
                 
                 
-                {/* Typing Message */}
+                 {/* Typing Message */}
                 {typingMessage && (
                   <div className="flex justify-start animate-fade-in">
                     <div className="bg-muted text-muted-foreground p-4 rounded-lg max-w-[80%]">
@@ -287,7 +332,7 @@ const Home = () => {
                 )}
                 
                 {/* Loading Animation */}
-                {isLoading && !typingMessage && (
+                {(isLoading || isSearching) && !typingMessage && (
                   <div className="flex justify-start animate-fade-in">
                     <div className="bg-muted text-muted-foreground p-4 rounded-lg">
                       <div className="flex items-center space-x-2">
@@ -296,7 +341,9 @@ const Home = () => {
                           <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                           <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                         </div>
-                        <span className="text-sm">AI is thinking...</span>
+                        <span className="text-sm">
+                          {isSearching ? 'Searching...' : 'AI is thinking...'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -311,21 +358,36 @@ const Home = () => {
           <div className="p-6 border-t border-border">
             <div className="max-w-4xl mx-auto">
               <div className="relative">
+                {/* Uploaded Image Preview */}
+                {uploadedImage && (
+                  <div className="mb-3">
+                    <ImageUpload 
+                      onImageUpload={uploadImage}
+                      uploadedImage={uploadedImage}
+                      onRemoveImage={removeUploadedImage}
+                    />
+                  </div>
+                )}
+                
                 <div className="flex items-center space-x-2 bg-card border border-border rounded-lg p-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0 text-muted-foreground hover:text-foreground"
-                  >
-                    <Paperclip className="w-4 h-4" />
-                  </Button>
+                  <AttachmentMenu 
+                    onImageUpload={uploadImage}
+                    onImageSearchToggle={() => setImageSearchActive(!imageSearchActive)}
+                    imageSearchActive={imageSearchActive}
+                  />
                   <Input
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Message Nayandeep GPT..."
+                    placeholder={
+                      imageSearchActive 
+                        ? "Search for images..." 
+                        : chatMode === 'image-generator'
+                        ? "Describe the image you want to generate..."
+                        : "Message Nayandeep GPT..."
+                    }
                     className="border-0 bg-transparent focus-visible:ring-0 text-foreground"
-                    disabled={isLoading}
+                    disabled={isLoading || isSearching}
                   />
                   <Button
                     size="icon"
@@ -340,24 +402,25 @@ const Home = () => {
                     )}
                   </Button>
                 </div>
+                
+                {/* Current Mode Indicator */}
+                {chatMode !== 'normal' && (
+                  <div className="mt-2 text-xs text-muted-foreground text-center">
+                    Mode: {chatMode.charAt(0).toUpperCase() + chatMode.slice(1).replace('-', ' ')}
+                    {chatMode === 'reasoning' && ' (Single use)'}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Sidebar */}
-        <div className="w-16 bg-sidebar border-l border-sidebar-border flex flex-col items-center py-20 space-y-4 mr-2">
-          {rightSidebarIcons.map((item, index) => (
-            <Button
-              key={index}
-              variant="ghost"
-              size="icon"
-              className="w-10 h-10 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              title={item.tooltip}
-            >
-              <item.icon className="w-4 h-4" />
-            </Button>
-          ))}
+        {/* Right Sidebar - Chat Modes */}
+        <div className="w-16 bg-sidebar border-l border-sidebar-border flex flex-col items-center py-20 mr-2">
+          <ChatModeSelector 
+            currentMode={chatMode}
+            onModeChange={setChatMode}
+          />
         </div>
       </div>
 
