@@ -57,14 +57,16 @@ serve(async (req) => {
       content: messageText
     });
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${grokApiKey}`
+        'Authorization': `Bearer ${grokApiKey}`,
+        'HTTP-Referer': 'https://hyntihxkukwnpwmlinhf.supabase.co',
+        'X-Title': 'NayandeepGPT'
       },
       body: JSON.stringify({
-        model: 'grok-beta',
+        model: 'x-ai/grok-beta',
         messages: messages,
         temperature: 0.7,
         max_tokens: 1000,
@@ -73,7 +75,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Grok AI API error:', errorData);
+      console.error('OpenRouter API error:', errorData);
       throw new Error(`API request failed: ${response.status}`);
     }
 
@@ -84,7 +86,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in chat-grok function:', error);
+    console.error('Error in chat function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,

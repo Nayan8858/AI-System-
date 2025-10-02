@@ -16,14 +16,41 @@ serve(async (req) => {
   try {
     const { prompt } = await req.json();
     
-    // Grok doesn't support image generation
-    console.log('Image generation requested but Grok AI does not support image generation');
-    
+    // Use OpenRouter with DALL-E for image generation
+    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${grokApiKey}`,
+        'HTTP-Referer': 'https://hyntihxkukwnpwmlinhf.supabase.co',
+        'X-Title': 'NayandeepGPT'
+      },
+      body: JSON.stringify({
+        prompt: prompt,
+        model: 'openai/dall-e-3',
+        n: 1,
+        size: '1024x1024'
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('OpenRouter image generation error:', errorData);
+      return new Response(JSON.stringify({ 
+        error: "Image generation failed",
+        message: "Unable to generate image. Please try again."
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const data = await response.json();
+    const imageUrl = data.data[0].url;
+
     return new Response(JSON.stringify({ 
-      error: "Image generation is not supported with Grok AI. Grok specializes in text generation and reasoning.",
-      message: "Please use text-based queries instead, or consider switching to a different AI service that supports image generation."
+      imageUrl: imageUrl
     }), {
-      status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
