@@ -1,1 +1,16 @@
 project_id = "hyntihxkukwnpwmlinhf"
+
+[functions.chat-gemini]
+verify_jwt = false
+
+[functions.chat-openai]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false
+
+[functions.web-search]
+verify_jwt = false
+
+[functions.search-images]
+verify_jwt = false

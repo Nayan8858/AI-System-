@@ -23,15 +23,53 @@ serve(async (req) => {
 
     const searchData = await searchResponse.json();
     
-    // Format search results
+    // Format search results with summary and links
+    let summary = '';
+    const sources = [];
+    
+    // Build summary from available data
+    if (searchData.Abstract) {
+      const sentences = searchData.Abstract.split('. ');
+      summary = sentences.slice(0, 2).join('. ') + (sentences.length > 2 ? '.' : '');
+      
+      if (searchData.AbstractURL && searchData.AbstractSource) {
+        sources.push({
+          title: `${searchData.AbstractSource}: ${searchData.Heading || 'Article'}`,
+          url: searchData.AbstractURL,
+          note: 'Primary source'
+        });
+      }
+    } else if (searchData.Answer) {
+      summary = searchData.Answer;
+    } else {
+      summary = 'No direct answer found. Please try a more specific query.';
+    }
+    
+    // Add related topics as additional sources
+    if (searchData.RelatedTopics && searchData.RelatedTopics.length > 0) {
+      for (let i = 0; i < Math.min(2, searchData.RelatedTopics.length); i++) {
+        const topic = searchData.RelatedTopics[i];
+        if (topic.FirstURL && topic.Text) {
+          sources.push({
+            title: topic.Text.split(' - ')[0] || 'Related Article',
+            url: topic.FirstURL,
+            note: 'Related information'
+          });
+        }
+      }
+    }
+    
+    // Format the response
     const results = {
-      abstract: searchData.Abstract,
-      abstract_source: searchData.AbstractSource,
-      abstract_url: searchData.AbstractURL,
-      related_topics: searchData.RelatedTopics?.slice(0, 5) || [],
-      infobox: searchData.Infobox,
-      answer: searchData.Answer,
-      answer_type: searchData.AnswerType,
+      summary,
+      sources: sources.slice(0, 3), // Max 3 sources
+      raw_data: {
+        abstract: searchData.Abstract,
+        abstract_source: searchData.AbstractSource,
+        abstract_url: searchData.AbstractURL,
+        answer: searchData.Answer,
+        answer_type: searchData.AnswerType,
+      }
     };
 
     return new Response(JSON.stringify({ results }), {
