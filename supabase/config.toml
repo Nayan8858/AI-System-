@@ -14,3 +14,18 @@ verify_jwt = false
 
 [functions.search-images]
 verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.create-razorpay-checkout]
+verify_jwt = false
+
+[functions.check-razorpay-subscription]
+verify_jwt = false
+
+[functions.verify-razorpay-payment]
+verify_jwt = false

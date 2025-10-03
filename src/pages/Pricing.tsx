@@ -44,9 +44,9 @@ const plans: PricingPlan[] = [
   },
   {
     name: 'Basic',
-    monthlyPrice: 5,
-    yearlyPrice: 54, // 10% discount: $5 * 12 * 0.9 = $54
-    priceId: { monthly: 'price_1S9mrH2KLXEX1a3ocfqvxk43', yearly: 'price_1S9mrH2KLXEX1a3ocfqvxk43' },
+    monthlyPrice: 399,
+    yearlyPrice: 4299,
+    priceId: { monthly: 'basic_monthly', yearly: 'basic_yearly' },
     features: [
       { name: 'Hero AI access', included: true },
       { name: 'Limited chat history (100 messages)', included: true },
@@ -63,9 +63,9 @@ const plans: PricingPlan[] = [
   },
   {
     name: 'Premium',
-    monthlyPrice: 15.99,
-    yearlyPrice: 172.70, // 10% discount: $15.99 * 12 * 0.9 = $172.70
-    priceId: { monthly: 'price_1S9mrb2KLXEX1a3oKk38psuM', yearly: 'price_1S9mrb2KLXEX1a3oKk38psuM' },
+    monthlyPrice: 1299,
+    yearlyPrice: 13999,
+    priceId: { monthly: 'premium_monthly', yearly: 'premium_yearly' },
     popular: true,
     features: [
       { name: 'PRO AI access', included: true },
@@ -120,21 +120,21 @@ const Pricing = () => {
     }
 
     try {
-      const priceId = isYearly ? plan.priceId.yearly : plan.priceId.monthly;
+      const planType = isYearly ? plan.priceId.yearly : plan.priceId.monthly;
       const planPrice = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
       
-      if (!priceId) {
-        throw new Error("Price ID not found for this plan");
+      if (!planType) {
+        throw new Error("Plan type not found");
       }
       
       toast({
-        title: "Redirecting to Stripe...",
-        description: "Please wait while we set up your subscription.",
+        title: "Setting up Razorpay...",
+        description: "Please wait while we prepare your subscription.",
       });
       
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const { data, error } = await supabase.functions.invoke('create-razorpay-checkout', {
         body: { 
-          priceId,
+          planType,
           userEmail: user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress,
           userId: user.id
         }
@@ -142,12 +142,54 @@ const Pricing = () => {
 
       if (error) throw error;
 
-      if (data?.url) {
-        // Modify the success URL to include plan details
-        const successUrl = new URL(data.url.replace('/success', `/home?payment=success&plan=${plan.name}&price=${planPrice}`));
-        window.open(successUrl.href, '_blank');
+      if (data?.subscriptionId && data?.razorpayKeyId) {
+        const options = {
+          key: data.razorpayKeyId,
+          subscription_id: data.subscriptionId,
+          name: 'NayandeepGPT',
+          description: `${plan.name} Plan - ${isYearly ? 'Yearly' : 'Monthly'}`,
+          handler: async function (response: any) {
+            try {
+              // Verify payment
+              const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
+                body: {
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_subscription_id: response.razorpay_subscription_id,
+                  razorpay_signature: response.razorpay_signature,
+                }
+              });
+
+              if (verifyError) throw verifyError;
+
+              toast({
+                title: "Payment Successful!",
+                description: `You're now subscribed to the ${plan.name} plan.`,
+              });
+
+              // Redirect to home with success
+              window.location.href = `/home?payment=success&plan=${plan.name}&price=${planPrice}`;
+            } catch (verifyErr) {
+              console.error('Payment verification error:', verifyErr);
+              toast({
+                title: "Verification Error",
+                description: "Payment received but verification failed. Please contact support.",
+                variant: "destructive",
+              });
+            }
+          },
+          prefill: {
+            email: data.customerEmail,
+          },
+          theme: {
+            color: '#3b82f6',
+          },
+        };
+
+        // @ts-ignore - Razorpay is loaded via script tag
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
       } else {
-        throw new Error("No checkout URL received");
+        throw new Error("Failed to create subscription");
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -222,7 +264,7 @@ const Pricing = () => {
                 <CardTitle className="text-xl font-semibold">{plan.name}</CardTitle>
                 <div className="mt-4">
                   <span className="text-4xl font-bold text-primary">
-                    ${isYearly ? plan.yearlyPrice.toFixed(2) : plan.monthlyPrice.toFixed(2)}
+                    ₹{isYearly ? plan.yearlyPrice.toFixed(0) : plan.monthlyPrice.toFixed(0)}
                   </span>
                   <span className="text-muted-foreground text-sm ml-1">
                     /{isYearly ? 'year' : 'month'}

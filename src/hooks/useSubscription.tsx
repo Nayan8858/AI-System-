@@ -89,29 +89,56 @@ export const useSubscription = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
+      setSubscriptionStatus(prev => ({ ...prev, isLoading: true }));
+
+      const { data, error } = await supabase.functions.invoke('check-razorpay-subscription', {
         body: {
           clerkUserId: user.id,
           userEmail: user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress
         }
       });
-      
-      if (error) throw error;
 
-      const planKey = data.product_id ? 
-        Object.keys(subscriptionPlans).find(key => 
-          subscriptionPlans[key].productId === data.product_id
-        ) || 'free' : 'free';
+      if (error) {
+        console.error('Error checking subscription:', error);
+        setSubscriptionStatus({
+          subscribed: false,
+          plan: 'free',
+          productId: null,
+          subscriptionEnd: null,
+          isLoading: false,
+        });
+        return;
+      }
 
-      setSubscriptionStatus({
-        subscribed: data.subscribed || false,
-        plan: planKey,
-        productId: data.product_id,
-        subscriptionEnd: data.subscription_end,
-        isLoading: false,
-      });
+      if (data?.subscribed) {
+        // Map Razorpay plan types to our plan names
+        const planMapping: { [key: string]: 'free' | 'basic' | 'premium' } = {
+          'basic_monthly': 'basic',
+          'basic_yearly': 'basic',
+          'premium_monthly': 'premium',
+          'premium_yearly': 'premium',
+        };
+
+        const planName = planMapping[data.plan_type] || 'free';
+
+        setSubscriptionStatus({
+          subscribed: true,
+          plan: planName,
+          productId: data.subscription_id,
+          subscriptionEnd: data.subscription_end,
+          isLoading: false,
+        });
+      } else {
+        setSubscriptionStatus({
+          subscribed: false,
+          plan: 'free',
+          productId: null,
+          subscriptionEnd: null,
+          isLoading: false,
+        });
+      }
     } catch (error) {
-      console.error('Error checking subscription:', error);
+      console.error('Error in checkSubscription:', error);
       setSubscriptionStatus({
         subscribed: false,
         plan: 'free',
