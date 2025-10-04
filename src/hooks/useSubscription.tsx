@@ -88,65 +88,14 @@ export const useSubscription = () => {
       return;
     }
 
-    try {
-      setSubscriptionStatus(prev => ({ ...prev, isLoading: true }));
-
-      const { data, error } = await supabase.functions.invoke('check-razorpay-subscription', {
-        body: {
-          clerkUserId: user.id,
-          userEmail: user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress
-        }
-      });
-
-      if (error) {
-        console.error('Error checking subscription:', error);
-        setSubscriptionStatus({
-          subscribed: false,
-          plan: 'free',
-          productId: null,
-          subscriptionEnd: null,
-          isLoading: false,
-        });
-        return;
-      }
-
-      if (data?.subscribed) {
-        // Map Razorpay plan types to our plan names
-        const planMapping: { [key: string]: 'free' | 'basic' | 'premium' } = {
-          'basic_monthly': 'basic',
-          'basic_yearly': 'basic',
-          'premium_monthly': 'premium',
-          'premium_yearly': 'premium',
-        };
-
-        const planName = planMapping[data.plan_type] || 'free';
-
-        setSubscriptionStatus({
-          subscribed: true,
-          plan: planName,
-          productId: data.subscription_id,
-          subscriptionEnd: data.subscription_end,
-          isLoading: false,
-        });
-      } else {
-        setSubscriptionStatus({
-          subscribed: false,
-          plan: 'free',
-          productId: null,
-          subscriptionEnd: null,
-          isLoading: false,
-        });
-      }
-    } catch (error) {
-      console.error('Error in checkSubscription:', error);
-      setSubscriptionStatus({
-        subscribed: false,
-        plan: 'free',
-        productId: null,
-        subscriptionEnd: null,
-        isLoading: false,
-      });
-    }
+    // Payment gateway not yet set up
+    setSubscriptionStatus({
+      subscribed: false,
+      plan: 'free',
+      productId: null,
+      subscriptionEnd: null,
+      isLoading: false,
+    });
   }, [user]);
 
   useEffect(() => {

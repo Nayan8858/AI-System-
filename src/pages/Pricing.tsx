@@ -120,87 +120,15 @@ const Pricing = () => {
     }
 
     try {
-      const planType = isYearly ? plan.priceId.yearly : plan.priceId.monthly;
-      const planPrice = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
-      
-      if (!planType) {
-        throw new Error("Plan type not found");
-      }
-      
       toast({
-        title: "Setting up Razorpay...",
-        description: "Please wait while we prepare your subscription.",
+        title: "Coming Soon",
+        description: "Payment integration will be set up shortly.",
       });
-      
-      const { data, error } = await supabase.functions.invoke('create-razorpay-checkout', {
-        body: { 
-          planType,
-          userEmail: user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress,
-          userId: user.id
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.planId && data?.razorpayKeyId) {
-        const options = {
-          key: data.razorpayKeyId,
-          amount: data.amount,
-          currency: data.currency,
-          name: 'NayandeepGPT',
-          description: `${plan.name} Plan - ${isYearly ? 'Yearly' : 'Monthly'}`,
-          subscription_plan_id: data.planId,
-          customer_id: data.customerId,
-          recurring: 1,
-          handler: async function (response: any) {
-            try {
-              // Verify payment
-              const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
-                body: {
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_subscription_id: response.razorpay_subscription_id,
-                  razorpay_signature: response.razorpay_signature,
-                }
-              });
-
-              if (verifyError) throw verifyError;
-
-              toast({
-                title: "Payment Successful!",
-                description: `You're now subscribed to the ${plan.name} plan.`,
-              });
-
-              // Redirect to home with success
-              window.location.href = `/home?payment=success&plan=${plan.name}&price=${planPrice}`;
-            } catch (verifyErr) {
-              console.error('Payment verification error:', verifyErr);
-              toast({
-                title: "Verification Error",
-                description: "Payment received but verification failed. Please contact support.",
-                variant: "destructive",
-              });
-            }
-          },
-          prefill: {
-            email: data.customerEmail,
-          },
-          notes: data.notes,
-          theme: {
-            color: '#3b82f6',
-          },
-        };
-
-        // @ts-ignore - Razorpay is loaded via script tag
-        const razorpay = new window.Razorpay(options);
-        razorpay.open();
-      } else {
-        throw new Error("Failed to create checkout session");
-      }
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      console.error('Error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to initiate checkout. Please try again.",
+        description: error instanceof Error ? error.message : "An error occurred.",
         variant: "destructive",
       });
     }
