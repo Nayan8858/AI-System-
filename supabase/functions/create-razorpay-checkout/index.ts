@@ -97,6 +97,8 @@ serve(async (req) => {
 
     let planId;
     const plansData = await plansResponse.json();
+    logStep("Plans data received", { count: plansData.items?.length });
+    
     const existingPlan = plansData.items?.find((p: any) => 
       p.item?.name === planConfig.name && 
       p.item?.amount === planConfig.amount
@@ -123,9 +125,25 @@ serve(async (req) => {
         }),
       });
       
+      if (!createPlanResponse.ok) {
+        const errorData = await createPlanResponse.json();
+        logStep("Error creating plan", errorData);
+        throw new Error(errorData.error?.description || "Failed to create plan");
+      }
+      
       const newPlan = await createPlanResponse.json();
+      
+      if (!newPlan.id) {
+        logStep("Invalid plan response", newPlan);
+        throw new Error("Failed to create plan - no ID returned");
+      }
+      
       planId = newPlan.id;
-      logStep("New plan created", { planId });
+      logStep("New plan created", { planId, planData: newPlan });
+    }
+    
+    if (!planId) {
+      throw new Error("Plan ID is missing");
     }
 
     // Create subscription
