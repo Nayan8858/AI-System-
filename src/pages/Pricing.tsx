@@ -142,12 +142,16 @@ const Pricing = () => {
 
       if (error) throw error;
 
-      if (data?.subscriptionId && data?.razorpayKeyId) {
+      if (data?.planId && data?.razorpayKeyId) {
         const options = {
           key: data.razorpayKeyId,
-          subscription_id: data.subscriptionId,
+          amount: data.amount,
+          currency: data.currency,
           name: 'NayandeepGPT',
           description: `${plan.name} Plan - ${isYearly ? 'Yearly' : 'Monthly'}`,
+          subscription_plan_id: data.planId,
+          customer_id: data.customerId,
+          recurring: 1,
           handler: async function (response: any) {
             try {
               // Verify payment
@@ -180,6 +184,7 @@ const Pricing = () => {
           prefill: {
             email: data.customerEmail,
           },
+          notes: data.notes,
           theme: {
             color: '#3b82f6',
           },
@@ -189,7 +194,7 @@ const Pricing = () => {
         const razorpay = new window.Razorpay(options);
         razorpay.open();
       } else {
-        throw new Error("Failed to create subscription");
+        throw new Error("Failed to create checkout session");
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);

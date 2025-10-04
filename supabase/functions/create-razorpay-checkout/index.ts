@@ -146,44 +146,21 @@ serve(async (req) => {
       throw new Error("Plan ID is missing");
     }
 
-    // Create subscription
-    logStep("Creating Razorpay subscription");
-    const subscriptionResponse = await fetch(`https://api.razorpay.com/v1/subscriptions`, {
-      method: "POST",
-      headers: {
-        "Authorization": authHeader,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        plan_id: planId,
-        customer_id: customerId,
-        total_count: planConfig.period === "yearly" ? 10 : 120, // 10 years or 10 years worth of months
-        quantity: 1,
-        customer_notify: 1,
-        notes: {
-          user_id: userId,
-          plan_type: planType,
-        },
-      }),
-    });
+    // Return plan details for frontend checkout
+    logStep("Returning checkout data", { planId, amount: planConfig.amount });
 
-    const subscription = await subscriptionResponse.json();
-    
-    if (!subscriptionResponse.ok) {
-      logStep("Error creating subscription", subscription);
-      throw new Error(subscription.error?.description || "Failed to create subscription");
-    }
-
-    logStep("Subscription created", { subscriptionId: subscription.id });
-
-    // Return subscription details for frontend to process payment
     return new Response(JSON.stringify({ 
-      subscriptionId: subscription.id,
+      planId: planId,
       razorpayKeyId: razorpayKeyId,
       amount: planConfig.amount,
       currency: "INR",
       name: planConfig.name,
       customerEmail: userEmail,
+      customerId: customerId,
+      notes: {
+        user_id: userId,
+        plan_type: planType,
+      }
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
