@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, X, Circle } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -46,7 +47,7 @@ const plans: PricingPlan[] = [
     name: 'Basic',
     monthlyPrice: 399,
     yearlyPrice: 4299,
-    priceId: { monthly: 'basic_monthly', yearly: 'basic_yearly' },
+    priceId: { monthly: 'price_1SEurz2KLXEX1a3oEApasDRb', yearly: 'price_1SEusF2KLXEX1a3oWp3xDpbX' },
     features: [
       { name: 'Hero AI access', included: true },
       { name: 'Limited chat history (100 messages)', included: true },
@@ -65,7 +66,7 @@ const plans: PricingPlan[] = [
     name: 'Premium',
     monthlyPrice: 1299,
     yearlyPrice: 13999,
-    priceId: { monthly: 'premium_monthly', yearly: 'premium_yearly' },
+    priceId: { monthly: 'price_1SEusU2KLXEX1a3oDUxYWnRC', yearly: 'price_1SEusg2KLXEX1a3o76SXHCME' },
     popular: true,
     features: [
       { name: 'PRO AI access', included: true },
@@ -100,6 +101,14 @@ const comparisonFeatures = [
 const Pricing = () => {
   const [isYearly, setIsYearly] = useState(false);
   const { user } = useAuth();
+  const { plan: currentPlan, refreshSubscription } = useSubscription();
+
+  useEffect(() => {
+    // Refresh subscription status when user lands on pricing page
+    if (user) {
+      refreshSubscription();
+    }
+  }, [user, refreshSubscription]);
 
   const handleUpgrade = async (plan: PricingPlan) => {
     if (!user) {
@@ -120,10 +129,25 @@ const Pricing = () => {
     }
 
     try {
-      toast({
-        title: "Coming Soon",
-        description: "Payment integration will be set up shortly.",
+      const priceId = isYearly ? plan.priceId.yearly : plan.priceId.monthly;
+      
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          priceId,
+          userEmail: user.primaryEmailAddress?.emailAddress,
+          userId: user.id,
+        },
       });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast({
+          title: "Redirecting to Checkout",
+          description: "Opening Stripe checkout in a new tab...",
+        });
+      }
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -134,16 +158,9 @@ const Pricing = () => {
     }
   };
 
-  const getUserPlan = () => {
-    // Check user's metadata for current plan - this would be updated after successful payment
-    const metadata = user?.publicMetadata as { plan?: string; expires?: string } | undefined;
-    return metadata?.plan || 'free';
-  };
-
   const isPlanActive = (planName: string) => {
-    const userPlan = getUserPlan();
-    if (planName.toLowerCase() === 'free') return true;
-    return userPlan === planName.toLowerCase();
+    if (planName.toLowerCase() === 'free') return currentPlan === 'free';
+    return currentPlan === planName.toLowerCase();
   };
 
   return (

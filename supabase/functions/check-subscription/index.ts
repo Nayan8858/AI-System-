@@ -60,6 +60,7 @@ serve(async (req) => {
     const hasActiveSub = subscriptions.data.length > 0;
     let productId = null;
     let subscriptionEnd = null;
+    let plan = 'free';
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
@@ -72,14 +73,25 @@ serve(async (req) => {
         logStep("Active subscription found but no valid end date", { subscriptionId: subscription.id });
         subscriptionEnd = null;
       }
-      productId = subscription.items.data[0].price.product;
-      logStep("Determined subscription product", { productId });
+      productId = subscription.items.data[0].price.product as string;
+      
+      // Map product IDs to plan names
+      const productMapping: Record<string, string> = {
+        'prod_TBHQPEasFTYdqk': 'basic',  // Basic Monthly
+        'prod_TBHRpeV72f1JjV': 'basic',  // Basic Yearly
+        'prod_TBHRV72A1OmWaB': 'premium', // Premium Monthly
+        'prod_TBHRaLFG4mxDT6': 'premium', // Premium Yearly
+      };
+      
+      plan = productMapping[productId] || 'free';
+      logStep("Determined subscription product and plan", { productId, plan });
     } else {
       logStep("No active subscription found");
     }
 
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
+      plan: plan,
       product_id: productId,
       subscription_end: subscriptionEnd
     }), {

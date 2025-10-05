@@ -88,14 +88,33 @@ export const useSubscription = () => {
       return;
     }
 
-    // Payment gateway not yet set up
-    setSubscriptionStatus({
-      subscribed: false,
-      plan: 'free',
-      productId: null,
-      subscriptionEnd: null,
-      isLoading: false,
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        body: {
+          clerkUserId: user.id,
+          userEmail: user.primaryEmailAddress?.emailAddress,
+        },
+      });
+
+      if (error) throw error;
+
+      setSubscriptionStatus({
+        subscribed: data.subscribed || false,
+        plan: data.plan || 'free',
+        productId: data.product_id || null,
+        subscriptionEnd: data.subscription_end || null,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      setSubscriptionStatus({
+        subscribed: false,
+        plan: 'free',
+        productId: null,
+        subscriptionEnd: null,
+        isLoading: false,
+      });
+    }
   }, [user]);
 
   useEffect(() => {
