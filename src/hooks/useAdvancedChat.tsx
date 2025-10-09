@@ -107,7 +107,7 @@ export const useAdvancedChat = () => {
           role: 'assistant',
           content: `I've generated an image based on your prompt: "${message}"`,
           timestamp: new Date(),
-          generatedImage: response.data.image,
+          generatedImage: response.data.imageUrl,
         };
         
         setMessages(prev => [...prev, assistantMessage]);
