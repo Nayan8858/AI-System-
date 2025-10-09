@@ -44,7 +44,7 @@ serve(async (req) => {
         'X-Title': 'NayandeepGPT'
       },
       body: JSON.stringify({
-        model: 'x-ai/grok-beta',
+        model: 'google/gemini-2.0-flash-exp:free',
         messages: messages,
         temperature: 0.7,
         max_tokens: 1000,
