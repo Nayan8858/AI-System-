@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,25 +18,28 @@ serve(async (req) => {
     
     console.log('[GENERATE-IMAGE] Generating image with prompt:', prompt);
     
-    // Use OpenRouter API for image generation
-    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+    // Use Lovable AI Gateway for image generation
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openRouterApiKey}`,
-        'HTTP-Referer': 'https://hyntihxkukwnpwmlinhf.supabase.co',
-        'X-Title': 'NayandeepGPT'
+        'Authorization': `Bearer ${lovableApiKey}`,
       },
       body: JSON.stringify({
-        model: 'black-forest-labs/flux-pro',
-        prompt: prompt,
-        n: 1,
+        model: 'google/gemini-2.5-flash-image-preview',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        modalities: ['image', 'text']
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('[GENERATE-IMAGE] OpenRouter API error:', errorData);
+      console.error('[GENERATE-IMAGE] Lovable AI API error:', errorData);
       return new Response(JSON.stringify({ 
         error: "Image generation failed",
         message: "Unable to generate image. Please try again."
@@ -47,7 +50,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const imageUrl = data.data?.[0]?.url;
+    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
     if (!imageUrl) {
       console.error('[GENERATE-IMAGE] No image data in response');
