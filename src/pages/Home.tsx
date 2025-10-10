@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdvancedChat } from "@/hooks/useAdvancedChat";
 import ImageUpload from "@/components/ImageUpload";
 import ImageSearchResults from "@/components/ImageSearchResults";
+import WebSearchResults from "@/components/WebSearchResults";
 import ChatModeSelector from "@/components/ChatModeSelector";
 import AttachmentMenu from "@/components/AttachmentMenu";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -303,6 +304,11 @@ const Home = () => {
                             link.click();
                           }}
                         />
+                      )}
+                      
+                      {/* Show web search results */}
+                      {msg.searchResults && !Array.isArray(msg.searchResults) && msg.searchResults.sources && (
+                        <WebSearchResults results={msg.searchResults} />
                       )}
                       
                       {/* Show image search results */}
