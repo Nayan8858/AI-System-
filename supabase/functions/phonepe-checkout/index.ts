@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createHash } from "node:crypto";
+import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,9 +66,13 @@ serve(async (req) => {
     // Base64 encode the payload
     const base64Payload = btoa(JSON.stringify(paymentPayload));
     
-    // Create X-VERIFY header
+    // Create X-VERIFY header using Web Crypto API
     const stringToHash = base64Payload + '/pg/v1/pay' + PHONEPE_CLIENT_SECRET;
-    const sha256Hash = createHash('sha256').update(stringToHash).digest('hex');
+    const encoder = new TextEncoder();
+    const data = encoder.encode(stringToHash);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const sha256Hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     const xVerifyHeader = `${sha256Hash}###1`;
 
     logStep('Making PhonePe API request');
