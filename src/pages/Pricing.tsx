@@ -129,11 +129,13 @@ const Pricing = () => {
     }
 
     try {
-      const priceId = isYearly ? plan.priceId.yearly : plan.priceId.monthly;
+      const amount = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
       
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const { data, error } = await supabase.functions.invoke('phonepe-checkout', {
         body: {
-          priceId,
+          amount,
+          planName: plan.name,
+          billingCycle: isYearly ? 'yearly' : 'monthly',
           userEmail: user.primaryEmailAddress?.emailAddress,
           userId: user.id,
         },
@@ -142,17 +144,17 @@ const Pricing = () => {
       if (error) throw error;
 
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.location.href = data.url;
         toast({
-          title: "Redirecting to Checkout",
-          description: "Opening Stripe checkout in a new tab...",
+          title: "Redirecting to Payment",
+          description: "Opening PhonePe secure checkout...",
         });
       }
     } catch (error) {
       console.error('Error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred.",
+        title: "Payment Error",
+        description: error instanceof Error ? error.message : "Failed to initiate payment.",
         variant: "destructive",
       });
     }
