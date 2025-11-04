@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from './useSubscription';
 import { toast } from './use-toast';
+import { formatTextForDisplay, detectQueryType } from '@/utils/textProcessing';
 
 export type ChatMode = 'normal' | 'reasoning' | 'image-generator' | 'deep-research' | 'web-search';
 
