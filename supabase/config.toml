@@ -1,1 +1,25 @@
 project_id = "ocjiljegwhcodeqxwjpe"
+
+[functions.chat-gemini]
+verify_jwt = false
+
+[functions.chat-openai]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false
+
+[functions.web-search]
+verify_jwt = false
+
+[functions.search-images]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.phonepe-checkout]
+verify_jwt = false
