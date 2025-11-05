@@ -78,8 +78,18 @@ export const convertNumberWordsToDigits = (text: string): string => {
 export const detectQueryType = (text: string): 'code' | 'image' | 'search' | 'normal' => {
   const lowerText = text.toLowerCase();
   
-  // Code detection
-  const codeKeywords = ['code', 'program', 'function', 'script', 'html', 'css', 'javascript', 'python', 'java', 'c++', 'react', 'debug', 'syntax'];
+  // Website creation detection (prioritize this)
+  const websiteKeywords = ['create a website', 'make a website', 'build a website', 'website using html', 
+    'portfolio website', 'landing page', 'responsive webpage', 'html css js', 'web page', 
+    'website with', 'design a website', 'generate website', 'web development', 'create website',
+    'build landing page', 'make webpage'];
+  
+  if (websiteKeywords.some(keyword => lowerText.includes(keyword))) {
+    return 'code';
+  }
+  
+  // Code detection (general programming)
+  const codeKeywords = ['code', 'program', 'function', 'script', 'python', 'java', 'c++', 'react', 'debug', 'syntax', 'algorithm'];
   if (codeKeywords.some(keyword => lowerText.includes(keyword))) {
     return 'code';
   }

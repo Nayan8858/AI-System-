@@ -27,8 +27,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import MainMenu from "@/components/MainMenu";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import ContextMenu from "@/components/ui/context-menu-custom";
 import { FeatureGate } from "@/components/FeatureGate";
@@ -38,6 +37,8 @@ import { ImageGenAnimation } from "@/components/animations/ImageGenAnimation";
 import { TypingAnimation } from "@/components/animations/TypingAnimation";
 import { ConfettiEffect } from "@/components/animations/ConfettiEffect";
 import { CodeMode } from "@/components/CodeMode";
+import { IdleAnimation } from "@/components/IdleAnimation";
+import logo from "@/assets/logo.png";
 
 const Home = () => {
   const [message, setMessage] = useState("");
@@ -50,7 +51,9 @@ const Home = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [codeModeActive, setCodeModeActive] = useState(false);
   const [codeContent, setCodeContent] = useState("");
+  const [sendAnimation, setSendAnimation] = useState(false);
   const { user } = useAuth();
+  const location = useLocation();
   const { 
     messages, 
     isLoading, 
@@ -76,6 +79,16 @@ const Home = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Handle initial message from navigation state
+  useEffect(() => {
+    const state = location.state as { initialMessage?: string };
+    if (state?.initialMessage) {
+      setMessage(state.initialMessage);
+      // Clear the state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -143,15 +156,27 @@ const Home = () => {
 
   const handleSendMessage = async () => {
     if (message.trim() && !isLoading) {
+      // Trigger send animation
+      setSendAnimation(true);
+      setTimeout(() => setSendAnimation(false), 600);
+      
       // Auto-detect query type and handle code mode
       const queryType = detectQueryType(message);
       
       if (queryType === 'code') {
-        // Extract code if present in the message
-        const codeMatch = message.match(/```[\s\S]*?```/);
-        if (codeMatch) {
-          setCodeContent(codeMatch[0].replace(/```\w*\n?/g, ''));
+        // Check if it's a website creation request
+        const websiteKeywords = ['create a website', 'make a website', 'build a website', 
+          'website using html', 'portfolio website', 'landing page', 'responsive webpage', 
+          'web page', 'website with', 'design a website', 'generate website'];
+        
+        const isWebsiteRequest = websiteKeywords.some(keyword => 
+          message.toLowerCase().includes(keyword)
+        );
+        
+        if (isWebsiteRequest) {
+          // Activate code mode for website building
           setCodeModeActive(true);
+          setCodeContent('<!-- Website code will be generated here -->');
         }
       }
       
@@ -188,6 +213,7 @@ const Home = () => {
   return (
     <SidebarProvider>
       {showConfetti && <ConfettiEffect />}
+      <IdleAnimation isActive={messages.length === 0 && !isLoading} />
       {codeModeActive && (
         <CodeMode 
           initialCode={codeContent}
@@ -205,7 +231,11 @@ const Home = () => {
           <div className="flex items-center space-x-4">
             {isMobile && <SidebarTrigger />}
             <div className="flex items-center space-x-2">
-              <div className="text-primary text-xl">✦</div>
+              <img 
+                src={logo} 
+                alt="NayandeepGPT Logo" 
+                className="h-8 w-8 object-contain animate-fade-in"
+              />
               <span className="font-semibold text-foreground">NayandeepGPT</span>
             </div>
           </div>
@@ -467,7 +497,9 @@ const Home = () => {
                   />
                   <Button
                     size="icon"
-                    className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full"
+                    className={`shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full ${
+                      sendAnimation ? 'animate-send-flight' : ''
+                    } ${isGenerating ? 'animate-pulse-glow' : ''}`}
                     disabled={!message.trim() && !isGenerating}
                     onClick={handleSendClick}
                   >
@@ -500,7 +532,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Context Menu */}
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}
@@ -510,8 +541,6 @@ const Home = () => {
           onRegenerate={() => regenerateMessage(contextMenu.messageId)}
         />
       )}
-      
-      <MainMenu />
     </SidebarProvider>
   );
 };

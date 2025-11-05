@@ -1,16 +1,32 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import aiRobotImage from "@/assets/ai-robot-illustration.png";
+import { ExampleIdeasModal } from "./ExampleIdeasModal";
+import { ImageIcon, Code, FileText } from "lucide-react";
 
 const Hero = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'image' | 'code' | 'text'>('image');
 
   const handleGetStarted = () => {
     if (user) {
       navigate('/home');
+    }
+  };
+
+  const handleOpenModal = (type: 'image' | 'code' | 'text') => {
+    setModalType(type);
+    setModalOpen(true);
+  };
+
+  const handleSelectIdea = (idea: string) => {
+    if (user) {
+      navigate('/home', { state: { initialMessage: idea } });
     }
   };
 
@@ -33,7 +49,7 @@ const Hero = () => {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-4">
               {user ? (
                 <Button 
                   size="lg" 
@@ -52,14 +68,42 @@ const Hero = () => {
                   </Button>
                 </SignUpButton>
               )}
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="px-8 py-4 text-lg border-border hover:bg-accent"
-              >
-                Learn More
-              </Button>
+              
+              {/* Quick Action Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 hover:bg-primary/10 hover:border-primary transition-all"
+                  onClick={() => handleOpenModal('image')}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  Create Image
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 hover:bg-primary/10 hover:border-primary transition-all"
+                  onClick={() => handleOpenModal('code')}
+                >
+                  <Code className="w-4 h-4" />
+                  Generate Code
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 hover:bg-primary/10 hover:border-primary transition-all"
+                  onClick={() => handleOpenModal('text')}
+                >
+                  <FileText className="w-4 h-4" />
+                  Summarize Text
+                </Button>
+              </div>
             </div>
+
+            <ExampleIdeasModal
+              isOpen={modalOpen}
+              onClose={() => setModalOpen(false)}
+              type={modalType}
+              onSelectIdea={handleSelectIdea}
+            />
           </div>
 
           {/* Right content - Robot illustration */}

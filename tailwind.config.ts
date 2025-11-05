@@ -86,17 +86,8 @@ export default {
           "100%": { transform: "scale(1)", opacity: "1" }
         },
         "pulse-glow": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.6" }
-        },
-        "scan": {
-          "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(200%)" }
-        },
-        "brush-stroke": {
-          "0%": { transform: "translateX(-50%) rotate(-10deg)" },
-          "50%": { transform: "translateX(0%) rotate(5deg)" },
-          "100%": { transform: "translateX(50%) rotate(-10deg)" }
+          "0%, 100%": { boxShadow: "0 0 5px hsl(var(--primary) / 0.5)" },
+          "50%": { boxShadow: "0 0 20px hsl(var(--primary) / 0.8)" }
         },
         "typing-blink": {
           "0%, 100%": { opacity: "1" },
@@ -105,11 +96,25 @@ export default {
         "confetti": {
           "0%": { transform: "translateY(-100vh) rotate(0deg)", opacity: "1" },
           "100%": { transform: "translateY(100vh) rotate(720deg)", opacity: "0" }
+        },
+        "scan": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(200%)" }
+        },
+        "brush-stroke": {
+          "0%": { transform: "translateX(-100%) rotate(-10deg)" },
+          "100%": { transform: "translateX(100%) rotate(10deg)" }
+        },
+        "send-flight": {
+          "0%": { transform: "rotate(0deg) translateY(0)" },
+          "50%": { transform: "rotate(360deg) translateY(-10px)" },
+          "100%": { transform: "rotate(360deg) translateY(0)" }
         }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "send-flight": "send-flight 0.6s ease-out",
         "fade-in": "fade-in 0.4s ease-out",
         "slide-up": "slide-up 0.5s ease-out",
         "bounce-in": "bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)",

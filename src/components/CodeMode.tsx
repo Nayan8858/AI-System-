@@ -75,6 +75,11 @@ export const CodeMode = ({ initialCode = '', onClose }: CodeModeProps) => {
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm">
       <div className="h-full flex flex-col">
+        {/* Ribbon */}
+        <div className="h-10 bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center text-primary-foreground text-sm font-medium">
+          🌐 This website is made by NayandeepGPT
+        </div>
+        
         {/* Header */}
         <div className="h-14 border-b border-border flex items-center justify-between px-4 bg-card">
           <div className="flex items-center space-x-4">

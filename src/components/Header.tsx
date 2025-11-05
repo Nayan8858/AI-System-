@@ -1,37 +1,64 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { SignInButton, SignUpButton, UserButton } from "@clerk/clerk-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Menu, Settings, User, Home, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center">
-            <span className="text-2xl font-bold text-primary">✦ NayandeepGPT</span>
+          <div className="flex items-center gap-3">
+            <img 
+              src={logo} 
+              alt="NayandeepGPT Logo" 
+              className="h-10 w-10 object-contain animate-fade-in"
+            />
+            <span className="text-2xl font-bold text-primary">NayandeepGPT</span>
           </div>
 
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-foreground hover:text-primary transition-colors">
-              Home
-            </a>
-            <a href="#features" className="text-foreground hover:text-primary transition-colors">
-              Features
-            </a>
-            <a href="/pricing" className="text-foreground hover:text-primary transition-colors">
-              Pricing
-            </a>
-            <a href="#" className="text-foreground hover:text-primary transition-colors">
-              About
-            </a>
-          </nav>
+          {/* Right side - Menu + Auth */}
+          <div className="flex items-center gap-4">
+            {/* Menu Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-card animate-fade-in z-50">
+                <DropdownMenuItem onClick={() => navigate("/")} className="cursor-pointer">
+                  <Home className="mr-2 h-4 w-4" />
+                  Landing Page
+                </DropdownMenuItem>
+                {user && (
+                  <DropdownMenuItem onClick={() => navigate("/home")} className="cursor-pointer">
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Chat Home
+                  </DropdownMenuItem>
+                )}
+                {user && (
+                  <DropdownMenuItem onClick={() => navigate("/user-profile")} className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile Management
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          {/* Auth buttons */}
-          <div className="flex items-center space-x-4">
+            {/* Auth buttons */}
             {user ? (
               <UserButton
                 appearance={{
