@@ -9,6 +9,9 @@ import Home from "./pages/Home";
 import UserProfile from "./pages/UserProfile";
 import Pricing from "./pages/Pricing";
 import PaymentStatus from "./pages/PaymentStatus";
+import Library from "./pages/Library";
+import History from "./pages/History";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +46,9 @@ const App = () => (
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/user-profile" element={<UserProfile />} />
             <Route path="/payment-status" element={<PaymentStatus />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

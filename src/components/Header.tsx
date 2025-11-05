@@ -20,7 +20,7 @@ const Header = () => {
             <img 
               src={logo} 
               alt="NayandeepGPT Logo" 
-              className="h-10 w-10 object-contain animate-fade-in"
+              className="h-[50px] md:h-[50px] sm:h-[35px] w-auto object-contain animate-fade-in"
             />
             <span className="text-2xl font-bold text-primary">NayandeepGPT</span>
           </div>

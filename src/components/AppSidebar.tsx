@@ -1,4 +1,5 @@
-import { MessageSquare, BookOpen, Clock, User } from "lucide-react";
+import { MessageSquare, BookOpen, Clock, User, Settings } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -9,14 +10,18 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 
-const sidebarItems = [
-  { icon: MessageSquare, label: "New Chat", active: true },
-  { icon: BookOpen, label: "Library" },
-  { icon: Clock, label: "History" },
-  { icon: User, label: "Profile" },
-];
-
 export function AppSidebar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const sidebarItems = [
+    { icon: MessageSquare, label: "New Chat", path: "/home" },
+    { icon: BookOpen, label: "Library", path: "/library" },
+    { icon: Clock, label: "History", path: "/history" },
+    { icon: User, label: "Profile", path: "/user-profile" },
+    { icon: Settings, label: "Settings", path: "/settings" },
+  ];
+
   return (
     <Sidebar className="border-sidebar-border">
       <SidebarContent>
@@ -26,14 +31,15 @@ export function AppSidebar() {
               {sidebarItems.map((item, index) => (
                 <SidebarMenuItem key={index}>
                   <SidebarMenuButton
-                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                      item.active 
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    onClick={() => navigate(item.path)}
+                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-all duration-300 ${
+                      location.pathname === item.path
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-md scale-105" 
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:scale-102"
                     }`}
                   >
-                    <item.icon className="w-4 h-4" />
-                    <span className="text-sm">{item.label}</span>
+                    <item.icon className={`w-4 h-4 ${location.pathname === item.path ? 'animate-pulse' : ''}`} />
+                    <span className="text-sm font-medium">{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
