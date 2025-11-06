@@ -7,7 +7,7 @@ interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   planName: string;
-  planPrice: number;
+  planPrice: string;
   priceId: string;
 }
 
@@ -39,7 +39,7 @@ export const PaymentModal = ({ isOpen, onClose, planName, planPrice, priceId }: 
         
         <div className="py-6 space-y-4">
           <div className="text-center space-y-2">
-            <div className="text-4xl font-bold text-primary">${planPrice}</div>
+            <div className="text-4xl font-bold text-primary">{planPrice}</div>
             <p className="text-muted-foreground">{planName} Plan</p>
           </div>
 

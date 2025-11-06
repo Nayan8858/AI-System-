@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.phonepe-checkout]
 verify_jwt = false
+
+[functions.api-key-create]
+verify_jwt = true
+
+[functions.api-key-me]
+verify_jwt = true
+
+[functions.api-key-regenerate]
+verify_jwt = true
