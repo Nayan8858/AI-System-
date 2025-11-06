@@ -34,10 +34,33 @@ const History = () => {
 
   useEffect(() => {
     // Load chat history from localStorage
-    const savedHistory = localStorage.getItem('chatHistory');
-    if (savedHistory) {
-      setSessions(JSON.parse(savedHistory));
-    }
+    const loadHistory = () => {
+      try {
+        const savedHistory = localStorage.getItem('nayandeep_chats');
+        if (savedHistory) {
+          setSessions(JSON.parse(savedHistory));
+        }
+      } catch (error) {
+        console.error('Error loading history:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load chat history.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    loadHistory();
+    
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'nayandeep_chats') {
+        loadHistory();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleOpenChat = (sessionId: string) => {
@@ -55,7 +78,7 @@ const History = () => {
 
   const handleClearAll = () => {
     setSessions([]);
-    localStorage.removeItem('chatHistory');
+    localStorage.removeItem('nayandeep_chats');
     // Clear all individual chat sessions
     sessions.forEach(session => {
       localStorage.removeItem(`chat_${session.id}`);
@@ -69,7 +92,7 @@ const History = () => {
   const handleDeleteSession = (sessionId: string) => {
     const updatedSessions = sessions.filter(s => s.id !== sessionId);
     setSessions(updatedSessions);
-    localStorage.setItem('chatHistory', JSON.stringify(updatedSessions));
+    localStorage.setItem('nayandeep_chats', JSON.stringify(updatedSessions));
     localStorage.removeItem(`chat_${sessionId}`);
     toast({
       title: "Deleted",
@@ -78,12 +101,12 @@ const History = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen">
       <Header />
       <SidebarProvider>
-        <div className="flex min-h-[calc(100vh-64px)]">
+        <div className="flex min-h-[calc(100vh-64px)] w-full">
           <AppSidebar />
-          <main className="flex-1 p-6 animate-fade-in">
+          <main className="flex-1 p-6 animate-fade-in backdrop-blur-sm">
             <div className="max-w-4xl mx-auto">
               <div className="mb-8 flex items-center justify-between">
                 <div>
@@ -119,7 +142,7 @@ const History = () => {
               </div>
 
               {sessions.length === 0 ? (
-                <Card className="p-12 text-center bg-card/50 backdrop-blur border-border/50">
+                <Card className="glass p-12 text-center">
                   <ClockIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                   <h3 className="text-xl font-semibold mb-2">No history yet</h3>
                   <p className="text-muted-foreground mb-6">
@@ -135,7 +158,7 @@ const History = () => {
                   {sessions.map((session) => (
                     <Card 
                       key={session.id}
-                      className="group transition-all duration-300 hover:scale-[1.02] hover:shadow-lg bg-card/80 backdrop-blur border-border/50"
+                      className="glass group transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
                     >
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between gap-4">

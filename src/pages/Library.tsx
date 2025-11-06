@@ -23,10 +23,33 @@ const Library = () => {
 
   useEffect(() => {
     // Load saved images from localStorage
-    const savedImages = localStorage.getItem('generatedImages');
-    if (savedImages) {
-      setImages(JSON.parse(savedImages));
-    }
+    const loadImages = () => {
+      try {
+        const savedImages = localStorage.getItem('nayandeep_images');
+        if (savedImages) {
+          setImages(JSON.parse(savedImages));
+        }
+      } catch (error) {
+        console.error('Error loading images:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load images from storage.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    loadImages();
+    
+    // Listen for storage changes (when images are added from other tabs/components)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'nayandeep_images') {
+        loadImages();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleDownload = (url: string, prompt: string) => {
@@ -45,7 +68,7 @@ const Library = () => {
   const handleDelete = (id: string) => {
     const updatedImages = images.filter(img => img.id !== id);
     setImages(updatedImages);
-    localStorage.setItem('generatedImages', JSON.stringify(updatedImages));
+    localStorage.setItem('nayandeep_images', JSON.stringify(updatedImages));
     toast({
       title: "Deleted",
       description: "Image removed from library.",
@@ -53,12 +76,12 @@ const Library = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen">
       <Header />
       <SidebarProvider>
-        <div className="flex min-h-[calc(100vh-64px)]">
+        <div className="flex min-h-[calc(100vh-64px)] w-full">
           <AppSidebar />
-          <main className="flex-1 p-6 animate-fade-in">
+          <main className="flex-1 p-6 animate-fade-in backdrop-blur-sm">
             <div className="max-w-7xl mx-auto">
               <div className="mb-8">
                 <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
@@ -70,11 +93,11 @@ const Library = () => {
               </div>
 
               {images.length === 0 ? (
-                <Card className="p-12 text-center bg-card/50 backdrop-blur border-border/50">
+                <Card className="glass p-12 text-center">
                   <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                   <h3 className="text-xl font-semibold mb-2">No images yet</h3>
                   <p className="text-muted-foreground mb-6">
-                    Start creating amazing AI-generated images!
+                    No images yet — go create something beautiful 🎨!
                   </p>
                   <Button onClick={() => navigate("/home")} className="gap-2">
                     <ImageIcon className="w-4 h-4" />
@@ -86,7 +109,7 @@ const Library = () => {
                   {images.map((image) => (
                     <Card 
                       key={image.id}
-                      className="group overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-lg bg-card/80 backdrop-blur border-border/50"
+                      className="glass group overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl"
                     >
                       <CardContent className="p-0 relative">
                         <img 

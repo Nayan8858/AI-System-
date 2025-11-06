@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.search-images]
 verify_jwt = false
 
+[functions.google-search]
+verify_jwt = false
+
 [functions.create-checkout]
 verify_jwt = false
 

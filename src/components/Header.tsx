@@ -15,15 +15,17 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
+          {/* Logo - clickable to home */}
+          <button 
+            onClick={() => navigate("/")}
+            className="flex items-center focus:outline-none focus:ring-2 focus:ring-primary rounded-lg transition-transform hover:scale-105"
+          >
             <img 
               src={logo} 
-              alt="NayandeepGPT Logo" 
-              className="h-[50px] md:h-[50px] sm:h-[35px] w-auto object-contain animate-fade-in"
+              alt="Logo" 
+              className="h-[55px] md:h-[55px] sm:h-[40px] w-auto object-contain animate-bounce-in cursor-pointer"
             />
-            <span className="text-2xl font-bold text-primary">NayandeepGPT</span>
-          </div>
+          </button>
 
           {/* Right side - Menu + Auth */}
           <div className="flex items-center gap-4">
