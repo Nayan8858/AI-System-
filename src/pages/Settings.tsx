@@ -46,6 +46,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PaymentModal } from "@/components/PaymentModal";
+import { APIAnalytics } from "@/components/APIAnalytics";
+import { clearMemory } from "@/utils/memorySystem";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -533,6 +535,10 @@ const Settings = () => {
                       <CardDescription>Developer integrations & API monetization</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                      <APIAnalytics />
+
+                      <Separator />
+
                       <div className="flex items-center justify-between">
                         <Label>🧑‍💻 Developer Mode</Label>
                         <Switch

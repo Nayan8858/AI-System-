@@ -12,6 +12,9 @@ import PaymentStatus from "./pages/PaymentStatus";
 import Library from "./pages/Library";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
+import Projects from "./pages/Projects";
+import WebTools from "./pages/WebTools";
+import Plugins from "./pages/Plugins";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +52,9 @@ const App = () => (
             <Route path="/library" element={<Library />} />
             <Route path="/history" element={<History />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/web-tools" element={<WebTools />} />
+            <Route path="/plugins" element={<Plugins />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

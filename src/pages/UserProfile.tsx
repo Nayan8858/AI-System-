@@ -2,9 +2,13 @@ import { UserProfile as ClerkUserProfile } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { RewardSystem } from "@/components/RewardSystem";
+import { Card } from "@/components/ui/card";
+import { getMemory } from "@/utils/memorySystem";
 
 const UserProfile = () => {
   const navigate = useNavigate();
+  const memory = getMemory();
 
   return (
     <div className="min-h-screen bg-background">
@@ -28,7 +32,27 @@ const UserProfile = () => {
 
       {/* Profile Content */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Memory Summary */}
+          <Card className="glass p-6">
+            <h3 className="text-lg font-semibold mb-4">Activity Summary</h3>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold">{Math.floor((Date.now() - new Date(memory.lastActivity).getTime()) / (1000 * 60 * 60 * 24))}d</p>
+                <p className="text-sm text-muted-foreground">Last Active</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{memory.projectsCount}</p>
+                <p className="text-sm text-muted-foreground">Projects</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{memory.conversationsSummary.length}</p>
+                <p className="text-sm text-muted-foreground">Conversations</p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Clerk Profile */}
           <ClerkUserProfile
             appearance={{
               baseTheme: undefined,
@@ -46,6 +70,9 @@ const UserProfile = () => {
             }}
             routing="hash"
           />
+
+          {/* Rewards Section */}
+          <RewardSystem />
         </div>
       </div>
     </div>

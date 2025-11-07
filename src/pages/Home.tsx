@@ -38,6 +38,11 @@ import { TypingAnimation } from "@/components/animations/TypingAnimation";
 import { ConfettiEffect } from "@/components/animations/ConfettiEffect";
 import { CodeMode } from "@/components/CodeMode";
 import { IdleAnimation } from "@/components/IdleAnimation";
+import { VoiceAssistant } from "@/components/VoiceAssistant";
+import { ChatTabs, ChatTab } from "@/components/ChatTabs";
+import { TemplateLibrary } from "@/components/TemplateLibrary";
+import { LuxuryUILayer } from "@/components/LuxuryUILayer";
+import { getWelcomeMessage, saveMemory, saveConversationSummary } from "@/utils/memorySystem";
 import logo from "@/assets/logo.png";
 
 const Home = () => {
@@ -52,6 +57,11 @@ const Home = () => {
   const [codeModeActive, setCodeModeActive] = useState(false);
   const [codeContent, setCodeContent] = useState("");
   const [sendAnimation, setSendAnimation] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [chatTabs, setChatTabs] = useState<ChatTab[]>([
+    { id: '1', title: 'New Chat', icon: '💬', messages: [] }
+  ]);
+  const [activeTabId, setActiveTabId] = useState('1');
   const { user } = useAuth();
   const location = useLocation();
   const { 
@@ -79,6 +89,26 @@ const Home = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize memory system
+  useEffect(() => {
+    const welcome = getWelcomeMessage();
+    setWelcomeMessage(welcome);
+    
+    if (user?.firstName) {
+      saveMemory({ userName: user.firstName });
+    }
+  }, [user]);
+
+  // Save conversation summary when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'user') {
+        saveConversationSummary(lastMessage.content.slice(0, 50));
+      }
+    }
+  }, [messages]);
   
   // Handle initial message from navigation state
   useEffect(() => {
@@ -210,10 +240,50 @@ const Home = () => {
     }
   };
 
+  const handleVoiceTranscript = (text: string) => {
+    setMessage(text);
+    handleSendMessage();
+  };
+
+  const handleNewTab = () => {
+    const newTab: ChatTab = {
+      id: Date.now().toString(),
+      title: `Chat ${chatTabs.length + 1}`,
+      icon: '💬',
+      messages: []
+    };
+    setChatTabs([...chatTabs, newTab]);
+    setActiveTabId(newTab.id);
+  };
+
+  const handleCloseTab = (tabId: string) => {
+    if (chatTabs.length === 1) return;
+    const filtered = chatTabs.filter(t => t.id !== tabId);
+    setChatTabs(filtered);
+    if (activeTabId === tabId) {
+      setActiveTabId(filtered[0].id);
+    }
+  };
+
+  const handleRenameTab = (tabId: string, newTitle: string) => {
+    setChatTabs(chatTabs.map(t => t.id === tabId ? { ...t, title: newTitle } : t));
+  };
+
+  const handleQuickAction = (action: string) => {
+    const prompts: { [key: string]: string } = {
+      image: 'Generate an image of ',
+      code: 'Write code for ',
+      summarize: 'Summarize this text: ',
+      search: 'Search for ',
+    };
+    setMessage(prompts[action] || '');
+  };
+
   return (
     <SidebarProvider>
       {showConfetti && <ConfettiEffect />}
       <IdleAnimation isActive={messages.length === 0 && !isLoading} />
+      <LuxuryUILayer onQuickAction={handleQuickAction} />
       {codeModeActive && (
         <CodeMode 
           initialCode={codeContent}
@@ -283,22 +353,35 @@ const Home = () => {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col pt-14">
+          {/* Chat Tabs */}
+          <ChatTabs
+            tabs={chatTabs}
+            activeTab={activeTabId}
+            onTabChange={setActiveTabId}
+            onNewTab={handleNewTab}
+            onCloseTab={handleCloseTab}
+            onRenameTab={handleRenameTab}
+          />
+
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-6">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto text-center space-y-8">
-                {/* Main Heading */}
+                {/* Main Heading with Memory */}
                 <div className="space-y-4 animate-fade-in">
                   <h1 className="text-5xl font-bold text-foreground bg-clip-text">
-                    What can I help with?
+                    {welcomeMessage}
                   </h1>
                   <p className="text-muted-foreground text-lg">
-                    Ask NayandeepGPT anything, from creative writing to complex coding problems.
+                    Ask anything, from creative writing to complex coding problems.
                   </p>
                 </div>
 
+                {/* Template Library */}
+                <TemplateLibrary onSelectTemplate={(prompt) => setMessage(prompt)} />
+
                 {/* Action Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
                   {actionCards.map((card, index) => (
                     <FeatureGate 
                       key={index}
@@ -470,6 +553,7 @@ const Home = () => {
                     onImageSearchToggle={() => setImageSearchActive(!imageSearchActive)}
                     imageSearchActive={imageSearchActive}
                   />
+                  <VoiceAssistant onTranscript={handleVoiceTranscript} autoSpeak={false} />
                   <Button
                     size="icon"
                     variant="ghost"
