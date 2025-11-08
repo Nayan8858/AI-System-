@@ -31,29 +31,29 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative min-h-[90vh] flex items-center bg-gradient-to-br from-background to-muted">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+    <section className="relative min-h-[85vh] flex items-center bg-background pt-20 pb-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left content */}
           <div className="space-y-8">
-            <div className="space-y-4">
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-tight">
+            <div className="space-y-6">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-[1.1] font-inter">
                 Your AI
                 <br />
                 Assistant for
                 <br />
                 <span className="text-primary">Everything</span>
               </h1>
-              <p className="text-xl text-muted-foreground max-w-md">
-                Chat, research, create, and code with Nayandeep GPT.
+              <p className="text-lg text-muted-foreground max-w-md leading-relaxed">
+                Chat, research, create, and code with NayandeepGPT. Your intelligent companion for all tasks.
               </p>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-6">
               {user ? (
                 <Button 
                   size="lg" 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-base font-medium rounded-xl w-fit"
                   onClick={handleGetStarted}
                 >
                   Get Started
@@ -62,7 +62,7 @@ const Hero = () => {
                 <SignUpButton mode="modal" fallbackRedirectUrl="/home">
                   <Button 
                     size="lg" 
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-base font-medium rounded-xl w-fit"
                   >
                     Get Started
                   </Button>
@@ -70,30 +70,30 @@ const Hero = () => {
               )}
               
               {/* Quick Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Button
                   variant="outline"
-                  className="flex items-center gap-2 hover:bg-primary/10 hover:border-primary transition-all"
+                  className="flex items-center gap-2 hover:bg-secondary hover:border-border transition-all rounded-xl py-5 border-border shadow-sm"
                   onClick={() => handleOpenModal('image')}
                 >
-                  <ImageIcon className="w-4 h-4" />
-                  Create Image
+                  <ImageIcon className="w-5 h-5" />
+                  <span className="text-sm font-medium">Create Image</span>
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex items-center gap-2 hover:bg-primary/10 hover:border-primary transition-all"
+                  className="flex items-center gap-2 hover:bg-secondary hover:border-border transition-all rounded-xl py-5 border-border shadow-sm"
                   onClick={() => handleOpenModal('code')}
                 >
-                  <Code className="w-4 h-4" />
-                  Generate Code
+                  <Code className="w-5 h-5" />
+                  <span className="text-sm font-medium">Generate Code</span>
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex items-center gap-2 hover:bg-primary/10 hover:border-primary transition-all"
+                  className="flex items-center gap-2 hover:bg-secondary hover:border-border transition-all rounded-xl py-5 border-border shadow-sm"
                   onClick={() => handleOpenModal('text')}
                 >
-                  <FileText className="w-4 h-4" />
-                  Summarize Text
+                  <FileText className="w-5 h-5" />
+                  <span className="text-sm font-medium">Summarize Text</span>
                 </Button>
               </div>
             </div>
@@ -108,11 +108,11 @@ const Hero = () => {
 
           {/* Right content - Robot illustration */}
           <div className="flex justify-center lg:justify-end">
-            <div className="relative">
+            <div className="relative w-full max-w-lg">
               <img
                 src={aiRobotImage}
                 alt="AI Robot Assistant"
-                className="w-full max-w-md lg:max-w-lg object-contain"
+                className="w-full h-auto object-contain drop-shadow-2xl"
               />
             </div>
           </div>
