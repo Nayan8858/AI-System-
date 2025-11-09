@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Link, Upload, Search, X } from 'lucide-react';
+import { Plus, ImageIcon, Search, Sparkles, X } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -11,12 +11,14 @@ interface AttachmentMenuProps {
   onImageUpload: (file: File) => void;
   onImageSearchToggle: () => void;
   imageSearchActive: boolean;
+  onModeChange?: (mode: 'image-generator' | 'web-search' | 'deep-research') => void;
 }
 
 const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
   onImageUpload,
   onImageSearchToggle,
   imageSearchActive,
+  onModeChange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,12 +35,8 @@ const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
     }
   };
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleSearchToggle = () => {
-    onImageSearchToggle();
+  const handleModeSelect = (mode: 'image-generator' | 'web-search' | 'deep-research') => {
+    onModeChange?.(mode);
     setIsOpen(false);
   };
 
@@ -57,30 +55,39 @@ const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className="shrink-0 text-muted-foreground hover:text-foreground"
+            className="shrink-0 text-muted-foreground hover:text-foreground transition-all hover:rotate-90"
           >
-            <Link className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-48 p-2" side="top">
+        <PopoverContent className="w-56 p-2 animate-fade-in" side="top">
           <div className="flex flex-col space-y-1">
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleUploadClick}
-              className="justify-start"
+              onClick={() => handleModeSelect('image-generator')}
+              className="justify-start hover:bg-accent transition-colors"
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Image
+              <ImageIcon className="w-4 h-4 mr-3 text-green-500" />
+              Generate Image
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleSearchToggle}
-              className="justify-start"
+              onClick={() => handleModeSelect('web-search')}
+              className="justify-start hover:bg-accent transition-colors"
             >
-              <Search className="w-4 h-4 mr-2" />
-              Search Image
+              <Search className="w-4 h-4 mr-3 text-blue-500" />
+              Web Search
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleModeSelect('deep-research')}
+              className="justify-start hover:bg-accent transition-colors"
+            >
+              <Sparkles className="w-4 h-4 mr-3 text-purple-500" />
+              Deep Research
             </Button>
           </div>
         </PopoverContent>

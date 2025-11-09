@@ -16,7 +16,35 @@ serve(async (req) => {
   try {
     const { message, conversation = [], mode = 'normal', imageData = null } = await req.json();
 
-    // Convert conversation to Grok AI format
+    // Smart model routing based on prompt keywords
+    const q = message.toLowerCase();
+    let modelKey = Deno.env.get('API_DEEPSEEK_V3_KEY');
+    let modelName = 'deepseek/deepseek-chat';
+    
+    if (q.includes("code") || q.includes("debug") || q.includes("html") || q.includes("css") || q.includes("javascript")) {
+      modelKey = Deno.env.get('API_QWEN_CODER_KEY');
+      modelName = 'qwen/qwen-2.5-coder-32b-instruct';
+    } else if (q.includes("math") || q.includes("solve") || q.includes("calculate") || q.includes("reason")) {
+      modelKey = Deno.env.get('API_QWEN3_KEY');
+      modelName = 'qwen/qwen-2.5-72b-instruct';
+    } else if (q.includes("email") || q.includes("report") || q.includes("resume") || q.includes("formal")) {
+      modelKey = Deno.env.get('API_LLAMA4_KEY');
+      modelName = 'meta-llama/llama-3.3-70b-instruct';
+    } else if (q.includes("write") || q.includes("blog") || q.includes("story") || q.includes("creative")) {
+      modelKey = Deno.env.get('API_LLAMA3_KEY');
+      modelName = 'meta-llama/llama-3.3-70b-instruct';
+    } else if (q.includes("search") || q.includes("find") || q.includes("latest")) {
+      modelKey = Deno.env.get('API_GEMINI_KEY');
+      modelName = 'google/gemini-2.0-flash-exp:free';
+    } else if (imageData) {
+      modelKey = Deno.env.get('API_QWEN_VL_KEY');
+      modelName = 'qwen/qwen-2-vl-72b-instruct';
+    } else if (q.includes("research") || q.includes("compare") || q.includes("analyze")) {
+      modelKey = Deno.env.get('API_DEEPSEEK_R1_KEY');
+      modelName = 'deepseek/deepseek-r1-distill-llama-70b';
+    }
+
+    // Convert conversation format
     const messages = [];
     
     // Add system message based on mode
@@ -47,9 +75,9 @@ serve(async (req) => {
       });
     }
     
-    // Add current message (note about image limitation)
+    // Add current message
     const messageText = imageData 
-      ? `${message} (Note: An image was uploaded but cannot be processed with Grok AI)`
+      ? `${message} (Note: Image analysis enabled)`
       : message;
       
     messages.push({
@@ -57,16 +85,18 @@ serve(async (req) => {
       content: messageText
     });
 
+    console.log(`Using model: ${modelName} for prompt: ${message.substring(0, 50)}...`);
+
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openRouterApiKey}`,
-        'HTTP-Referer': 'https://hyntihxkukwnpwmlinhf.supabase.co',
+        'Authorization': `Bearer ${modelKey || openRouterApiKey}`,
+        'HTTP-Referer': 'https://ocjiljegwhcodeqxwjpe.supabase.co',
         'X-Title': 'NayandeepGPT'
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-chat',
+        model: modelName,
         messages: messages,
         temperature: 0.7,
         max_tokens: 1000,

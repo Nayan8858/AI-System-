@@ -1,126 +1,114 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 interface VoiceAssistantProps {
   onTranscript: (text: string) => void;
-  autoSpeak?: boolean;
 }
 
-export const VoiceAssistant = ({ onTranscript, autoSpeak = false }: VoiceAssistantProps) => {
+export const VoiceAssistant = ({ onTranscript }: VoiceAssistantProps) => {
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [recognition, setRecognition] = useState<any>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
-      recognitionInstance.continuous = true;
-      recognitionInstance.interimResults = true;
-
-      recognitionInstance.onresult = (event: any) => {
-        const transcript = Array.from(event.results)
-          .map((result: any) => result[0])
-          .map((result: any) => result.transcript)
-          .join('');
-
-        if (event.results[event.results.length - 1].isFinal) {
-          onTranscript(transcript);
-        }
-      };
-
-      recognitionInstance.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
-        setIsListening(false);
-        toast({
-          title: "Voice Error",
-          description: "Could not access microphone. Please check permissions.",
-          variant: "destructive"
-        });
-      };
-
-      setRecognition(recognitionInstance);
-    }
-  }, [onTranscript]);
-
-  const toggleListening = () => {
-    if (!recognition) {
-      toast({
-        title: "Not Supported",
-        description: "Speech recognition is not supported in this browser.",
-        variant: "destructive"
-      });
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      toast.error('Voice recognition is not supported in your browser');
       return;
     }
 
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0].transcript)
+        .join('');
+      
+      if (event.results[event.results.length - 1].isFinal) {
+        onTranscript(transcript);
+        setIsListening(false);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        toast.error('Microphone access denied. Please allow microphone permission.');
+        setHasPermission(false);
+      } else {
+        toast.error('Voice recognition error. Please try again.');
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, [onTranscript]);
+
+  const toggleListening = async () => {
+    if (!recognitionRef.current) return;
+
     if (isListening) {
-      recognition.stop();
+      recognitionRef.current.stop();
       setIsListening(false);
     } else {
-      recognition.start();
-      setIsListening(true);
-      toast({
-        title: "Listening...",
-        description: "Speak now. I'm listening.",
-      });
-    }
-  };
+      try {
+        if (hasPermission === null || hasPermission === false) {
+          toast.info('Requesting microphone permission...');
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach(track => track.stop());
+          setHasPermission(true);
+          toast.success('Microphone access granted!');
+        }
 
-  const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      const voices = window.speechSynthesis.getVoices();
-      utterance.voice = voices.find(v => v.name.includes('Google')) || voices[0];
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      
-      window.speechSynthesis.speak(utterance);
+        recognitionRef.current.start();
+        setIsListening(true);
+        toast.success('🎤 Listening... Speak now');
+      } catch (error) {
+        console.error('Microphone permission error:', error);
+        toast.error('Please allow microphone access to use voice input');
+        setHasPermission(false);
+      }
     }
-  };
-
-  const stopSpeaking = () => {
-    window.speechSynthesis.cancel();
-    setIsSpeaking(false);
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="relative">
       <Button
+        variant="ghost"
         size="icon"
-        variant={isListening ? "destructive" : "outline"}
         onClick={toggleListening}
-        className="relative"
+        className={`shrink-0 transition-all ${
+          isListening 
+            ? 'text-red-500 hover:text-red-600' 
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+        title={isListening ? 'Stop listening' : 'Start voice input'}
       >
-        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-        
-        <AnimatePresence>
-          {isListening && (
-            <motion.div
-              className="absolute inset-0 rounded-full border-2 border-destructive"
-              initial={{ scale: 1, opacity: 1 }}
-              animate={{ scale: 1.5, opacity: 0 }}
-              exit={{ scale: 1, opacity: 0 }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-          )}
-        </AnimatePresence>
+        {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
       </Button>
-
-      {autoSpeak && (
-        <Button
-          size="icon"
-          variant={isSpeaking ? "destructive" : "outline"}
-          onClick={isSpeaking ? stopSpeaking : () => {}}
-          disabled={!isSpeaking}
-        >
-          {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-        </Button>
+      
+      {isListening && (
+        <div className="absolute -top-2 -left-2 -right-2 -bottom-2 pointer-events-none">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-red-500 via-purple-500 to-blue-500 opacity-30 animate-ping" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-green-500 to-yellow-500 opacity-20 animate-pulse" 
+               style={{ animationDelay: '0.2s' }} />
+        </div>
       )}
     </div>
   );

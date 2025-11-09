@@ -1,20 +1,26 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FileText, Video, Globe, Palette, BookOpen, Code, Mail, Calculator, Lightbulb } from 'lucide-react';
 
 interface Template {
-  icon: string;
+  id: string;
   title: string;
+  icon: any;
   prompt: string;
-  gradient: string;
+  category: string;
 }
 
 const templates: Template[] = [
-  { icon: '💼', title: 'Create Resume', prompt: 'Help me create a professional resume', gradient: 'from-blue-500/20 to-cyan-500/20' },
-  { icon: '🎥', title: 'YouTube Script', prompt: 'Write a YouTube video script about', gradient: 'from-red-500/20 to-pink-500/20' },
-  { icon: '🌐', title: 'Landing Page', prompt: 'Build a landing page with HTML, CSS for', gradient: 'from-purple-500/20 to-indigo-500/20' },
-  { icon: '🎨', title: 'Logo Design', prompt: 'Design a logo concept for', gradient: 'from-yellow-500/20 to-orange-500/20' },
-  { icon: '🧠', title: 'Science Report', prompt: 'Write a science project report on', gradient: 'from-green-500/20 to-teal-500/20' },
-  { icon: '📧', title: 'Email Writer', prompt: 'Write a professional email about', gradient: 'from-pink-500/20 to-rose-500/20' },
+  { id: '1', title: 'Create Resume', icon: FileText, prompt: 'Help me create a professional resume with my work experience and skills', category: 'Professional' },
+  { id: '2', title: 'YouTube Script', icon: Video, prompt: 'Write an engaging YouTube video script about', category: 'Content' },
+  { id: '3', title: 'Landing Page', icon: Globe, prompt: 'Create a complete HTML/CSS/JS landing page for', category: 'Development' },
+  { id: '4', title: 'Logo Design', icon: Palette, prompt: 'Generate creative logo design ideas for', category: 'Design' },
+  { id: '5', title: 'Science Report', icon: BookOpen, prompt: 'Help me write a detailed science project report on', category: 'Education' },
+  { id: '6', title: 'Debug Code', icon: Code, prompt: 'Help me debug and fix issues in my code:', category: 'Development' },
+  { id: '7', title: 'Email Writer', icon: Mail, prompt: 'Write a professional email for', category: 'Professional' },
+  { id: '8', title: 'Math Solver', icon: Calculator, prompt: 'Help me solve this math problem step by step:', category: 'Education' },
+  { id: '9', title: 'Ideas Generator', icon: Lightbulb, prompt: 'Generate creative ideas for', category: 'Creative' }
 ];
 
 interface TemplateLibraryProps {
@@ -22,31 +28,46 @@ interface TemplateLibraryProps {
 }
 
 export const TemplateLibrary = ({ onSelectTemplate }: TemplateLibraryProps) => {
+  const [showAll, setShowAll] = useState(false);
+  const displayedTemplates = showAll ? templates : templates.slice(0, 9);
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold">AI Templates</h2>
+    <div className="w-full max-w-5xl mx-auto p-6">
+      <h2 className="text-xl font-semibold text-foreground mb-4">Quick Start Templates</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {templates.map((template, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ scale: 1.05, rotateY: 5 }}
-            style={{ transformStyle: 'preserve-3d' }}
-          >
+        {displayedTemplates.map((template) => {
+          const Icon = template.icon;
+          return (
             <Card
-              className={`glass cursor-pointer hover:shadow-2xl transition-all duration-300 bg-gradient-to-br ${template.gradient}`}
+              key={template.id}
+              className="p-4 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 bg-card/80 backdrop-blur-sm border-border"
               onClick={() => onSelectTemplate(template.prompt)}
             >
-              <CardContent className="p-6 text-center space-y-3">
-                <div className="text-4xl">{template.icon}</div>
-                <h3 className="font-semibold">{template.title}</h3>
-              </CardContent>
+              <div className="flex items-start space-x-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Icon className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-foreground text-sm mb-1">{template.title}</h3>
+                  <p className="text-xs text-muted-foreground">{template.category}</p>
+                </div>
+              </div>
             </Card>
-          </motion.div>
-        ))}
+          );
+        })}
       </div>
+      
+      {templates.length > 9 && (
+        <div className="flex justify-center mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setShowAll(!showAll)}
+            className="min-w-[140px]"
+          >
+            {showAll ? 'Show Less' : 'Show More'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

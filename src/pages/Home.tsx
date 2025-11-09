@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Link, 
   Upload, 
@@ -241,8 +241,7 @@ const Home = () => {
   };
 
   const handleVoiceTranscript = (text: string) => {
-    setMessage(text);
-    handleSendMessage();
+    setMessage(prev => prev + (prev ? ' ' : '') + text);
   };
 
   const handleNewTab = () => {
@@ -552,8 +551,9 @@ const Home = () => {
                     onImageUpload={uploadImage}
                     onImageSearchToggle={() => setImageSearchActive(!imageSearchActive)}
                     imageSearchActive={imageSearchActive}
+                    onModeChange={setChatMode}
                   />
-                  <VoiceAssistant onTranscript={handleVoiceTranscript} autoSpeak={false} />
+                  <VoiceAssistant onTranscript={handleVoiceTranscript} />
                   <Button
                     size="icon"
                     variant="ghost"
@@ -565,19 +565,23 @@ const Home = () => {
                   >
                     <Code className="w-5 h-5" />
                   </Button>
-                  <Input
+                  <Textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder={
-                      imageSearchActive 
-                        ? "Search for images..." 
-                        : chatMode === 'image-generator'
-                        ? "Describe the image you want to generate..."
-                        : "Message NayandeepGPT..."
-                    }
-                    className="border-0 bg-transparent focus-visible:ring-0 text-foreground"
+                    placeholder="Type your message..."
+                    className="border-0 bg-transparent focus-visible:ring-0 text-foreground min-h-[44px] max-h-[120px] resize-none"
                     disabled={isLoading || isSearching}
+                    rows={1}
+                    style={{
+                      height: 'auto',
+                      overflowY: message.split('\n').length > 5 ? 'scroll' : 'hidden'
+                    }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                    }}
                   />
                   <Button
                     size="icon"

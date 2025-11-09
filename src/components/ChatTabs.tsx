@@ -56,7 +56,7 @@ export const ChatTabs = ({
               group relative flex items-center gap-2 px-4 py-2 rounded-t-lg
               transition-all duration-200 min-w-[150px] max-w-[200px]
               ${activeTab === tab.id 
-                ? 'bg-card border-2 border-b-0 border-primary shadow-lg scale-105' 
+                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105' 
                 : 'bg-muted/50 hover:bg-muted border border-border'
               }
             `}
