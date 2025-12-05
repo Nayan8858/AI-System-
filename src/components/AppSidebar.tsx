@@ -1,4 +1,4 @@
-import { MessageSquare, BookOpen, Clock, User, Settings, Folder, Globe, Puzzle, Gift } from "lucide-react";
+import { MessageSquare, BookOpen, Clock, User, Settings, Folder, Globe, Puzzle, BarChart3 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -19,6 +19,7 @@ export function AppSidebar() {
     { icon: Folder, label: "Projects", path: "/projects" },
     { icon: BookOpen, label: "Library", path: "/library" },
     { icon: Clock, label: "History", path: "/history" },
+    { icon: BarChart3, label: "AI Analytics", path: "/ai-analytics" },
     { icon: Globe, label: "Web Tools", path: "/web-tools" },
     { icon: Puzzle, label: "Plugins", path: "/plugins" },
     { icon: User, label: "Profile", path: "/user-profile" },

@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import Projects from "./pages/Projects";
 import WebTools from "./pages/WebTools";
 import Plugins from "./pages/Plugins";
+import AIAnalytics from "./pages/AIAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/projects" element={<Projects />} />
             <Route path="/web-tools" element={<WebTools />} />
             <Route path="/plugins" element={<Plugins />} />
+            <Route path="/ai-analytics" element={<AIAnalytics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -156,7 +156,7 @@ export const useAdvancedChat = () => {
         console.log('💬 Chat-openai response:', response);
         if (response.error) throw response.error;
 
-        // Typewriter effect
+        // Typewriter effect - 5x faster (6ms instead of 30ms)
         const fullResponse = response.data.reply;
         let currentText = '';
         
@@ -165,7 +165,7 @@ export const useAdvancedChat = () => {
           
           currentText += fullResponse[i];
           setTypingMessage(currentText);
-          await new Promise(resolve => setTimeout(resolve, 30));
+          await new Promise(resolve => setTimeout(resolve, 6));
         }
         
         const assistantMessage: Message = {
