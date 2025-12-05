@@ -14,36 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      api_keys: {
-        Row: {
-          created_at: string | null
-          id: string
-          key_hash: string
-          revoked: boolean | null
-          updated_at: string | null
-          usage_count: number | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          key_hash: string
-          revoked?: boolean | null
-          updated_at?: string | null
-          usage_count?: number | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          key_hash?: string
-          revoked?: boolean | null
-          updated_at?: string | null
-          usage_count?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never

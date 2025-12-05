@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, ImageIcon, Search, Sparkles, X } from 'lucide-react';
+import { Plus, ImageIcon, Camera, FileText, Sparkles, X, Upload } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -12,6 +12,8 @@ interface AttachmentMenuProps {
   onImageSearchToggle: () => void;
   imageSearchActive: boolean;
   onModeChange?: (mode: 'image-generator' | 'web-search' | 'deep-research') => void;
+  onPDFUpload?: (file: File) => void;
+  onCameraCapture?: () => void;
 }
 
 const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
@@ -19,19 +21,44 @@ const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
   onImageSearchToggle,
   imageSearchActive,
   onModeChange,
+  onPDFUpload,
+  onCameraCapture,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       onImageUpload(file);
       setIsOpen(false);
     }
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
+  const handlePDFSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      onPDFUpload?.(file);
+      setIsOpen(false);
+    }
+    if (pdfInputRef.current) {
+      pdfInputRef.current.value = '';
+    }
+  };
+
+  const handleCameraCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onImageUpload(file);
+      setIsOpen(false);
+    }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
     }
   };
 
@@ -43,10 +70,25 @@ const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
   return (
     <>
       <input
-        ref={fileInputRef}
+        ref={imageInputRef}
         type="file"
         accept="image/*"
-        onChange={handleFileSelect}
+        onChange={handleImageSelect}
+        className="hidden"
+      />
+      <input
+        ref={pdfInputRef}
+        type="file"
+        accept="application/pdf"
+        onChange={handlePDFSelect}
+        className="hidden"
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleCameraCapture}
         className="hidden"
       />
       
@@ -65,29 +107,38 @@ const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => imageInputRef.current?.click()}
+              className="justify-start hover:bg-accent transition-colors"
+            >
+              <Upload className="w-4 h-4 mr-3 text-blue-500" />
+              Upload Image
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => cameraInputRef.current?.click()}
+              className="justify-start hover:bg-accent transition-colors"
+            >
+              <Camera className="w-4 h-4 mr-3 text-cyan-500" />
+              Camera Capture
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => pdfInputRef.current?.click()}
+              className="justify-start hover:bg-accent transition-colors"
+            >
+              <FileText className="w-4 h-4 mr-3 text-orange-500" />
+              Upload PDF
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => handleModeSelect('image-generator')}
               className="justify-start hover:bg-accent transition-colors"
             >
-              <ImageIcon className="w-4 h-4 mr-3 text-green-500" />
-              Generate Image
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleModeSelect('web-search')}
-              className="justify-start hover:bg-accent transition-colors"
-            >
-              <Search className="w-4 h-4 mr-3 text-blue-500" />
-              Web Search
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleModeSelect('deep-research')}
-              className="justify-start hover:bg-accent transition-colors"
-            >
               <Sparkles className="w-4 h-4 mr-3 text-purple-500" />
-              Deep Research
+              Generate Image
             </Button>
           </div>
         </PopoverContent>
@@ -97,7 +148,7 @@ const AttachmentMenu: React.FC<AttachmentMenuProps> = ({
       {imageSearchActive && (
         <div className="absolute bottom-full left-0 right-0 mb-2 bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Search className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <ImageIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span className="text-blue-800 dark:text-blue-200 text-sm font-medium">
               Search Image Mode
             </span>

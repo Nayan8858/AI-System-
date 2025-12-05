@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  Link, 
   Upload, 
   Search, 
   X, 
@@ -13,7 +12,8 @@ import {
   Lightbulb,
   Diamond,
   Globe,
-  Code
+  Code,
+  Sparkles
 } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,6 +42,8 @@ import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { ChatTabs, ChatTab } from "@/components/ChatTabs";
 import { TemplateLibrary } from "@/components/TemplateLibrary";
 import { LuxuryUILayer } from "@/components/LuxuryUILayer";
+import { AIModelIndicator } from "@/components/AIModelIndicator";
+import { ImagePreviewModal } from "@/components/ImagePreviewModal";
 import { getWelcomeMessage, saveMemory, saveConversationSummary } from "@/utils/memorySystem";
 import logo from "@/assets/logo.png";
 
@@ -58,6 +60,8 @@ const Home = () => {
   const [codeContent, setCodeContent] = useState("");
   const [sendAnimation, setSendAnimation] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [currentModel, setCurrentModel] = useState("DeepSeek-V3.1");
+  const [imagePreview, setImagePreview] = useState<{ isOpen: boolean; url: string }>({ isOpen: false, url: "" });
   const [chatTabs, setChatTabs] = useState<ChatTab[]>([
     { id: '1', title: 'New Chat', icon: '💬', messages: [] }
   ]);
@@ -161,17 +165,17 @@ const Home = () => {
 
   const actionCards = [
     {
-      icon: () => <span className="text-2xl">🖼️</span>,
+      icon: () => <Sparkles className="w-6 h-6 text-purple-500" />,
       title: "Create Image",
       description: "Generate images from text descriptions"
     },
     {
-      icon: () => <span className="text-2xl">💻</span>,
+      icon: () => <Code className="w-6 h-6 text-green-500" />,
       title: "Generate Code",
       description: "Write and debug code in multiple languages"
     },
     {
-      icon: () => <span className="text-2xl">📄</span>,
+      icon: () => <Search className="w-6 h-6 text-blue-500" />,
       title: "Summarize Text",
       description: "Condense long content into key points"
     }
@@ -186,6 +190,26 @@ const Home = () => {
 
   const handleSendMessage = async () => {
     if (message.trim() && !isLoading) {
+      // Detect which model will be used based on message content
+      const q = message.toLowerCase();
+      if (q.includes("code") || q.includes("debug") || q.includes("html")) {
+        setCurrentModel("Qwen2.5-Coder-32B");
+      } else if (q.includes("math") || q.includes("solve") || q.includes("reason")) {
+        setCurrentModel("Qwen3-235B");
+      } else if (q.includes("email") || q.includes("report") || q.includes("resume")) {
+        setCurrentModel("LLaMA-4-Scout");
+      } else if (q.includes("write") || q.includes("blog") || q.includes("story")) {
+        setCurrentModel("LLaMA-3.3-70B");
+      } else if (q.includes("search") || q.includes("find")) {
+        setCurrentModel("Gemini-2.0-Flash");
+      } else if (uploadedImage) {
+        setCurrentModel("Qwen2.5-VL-32B");
+      } else if (q.includes("research") || q.includes("compare")) {
+        setCurrentModel("DeepSeek-R1-Distill");
+      } else {
+        setCurrentModel("DeepSeek-V3.1");
+      }
+      
       // Trigger send animation
       setSendAnimation(true);
       setTimeout(() => setSendAnimation(false), 600);
@@ -366,20 +390,25 @@ const Home = () => {
           <div className="flex-1 overflow-y-auto p-6">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto text-center space-y-8">
-                {/* Main Heading with Memory */}
-                <div className="space-y-4 animate-fade-in">
-                  <h1 className="text-5xl font-bold text-foreground bg-clip-text">
-                    {welcomeMessage}
-                  </h1>
-                  <p className="text-muted-foreground text-lg">
-                    Ask anything, from creative writing to complex coding problems.
-                  </p>
+                {/* Premium Hero Section */}
+                <div className="relative space-y-4 animate-fade-in">
+                  {/* Glow Effect */}
+                  <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl opacity-50 animate-pulse" />
+                  
+                  <div className="relative">
+                    <h1 className="text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-purple-500 bg-clip-text text-transparent">
+                      Welcome back, {user?.firstName || 'User'}!
+                    </h1>
+                    <p className="text-muted-foreground text-lg mt-4">
+                      Ask anything, from creative writing to complex coding problems.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Template Library */}
                 <TemplateLibrary onSelectTemplate={(prompt) => setMessage(prompt)} />
 
-                {/* Action Cards */}
+                {/* Action Cards with enhanced styling */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
                   {actionCards.map((card, index) => (
                     <FeatureGate 
@@ -389,7 +418,7 @@ const Home = () => {
                       showUpgrade={false}
                     >
                       <Card 
-                        className="p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border-2 border-border bg-card hover:scale-105 rounded-[20px] animate-slide-up"
+                        className="group p-6 hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 border-border bg-card/80 backdrop-blur-sm hover:scale-105 hover:border-primary/50 rounded-[20px] animate-slide-up"
                         style={{ 
                           animationDelay: `${index * 0.1}s`,
                           boxShadow: 'var(--message-shadow)'
@@ -397,7 +426,7 @@ const Home = () => {
                         onClick={() => setMessage(card.description)}
                       >
                         <CardContent className="flex flex-col items-center space-y-3 text-center p-0">
-                          <div className="p-4 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20">
+                          <div className="p-4 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 group-hover:from-primary/30 group-hover:to-purple-500/30 transition-all">
                             <card.icon />
                           </div>
                           <h3 className="font-semibold text-card-foreground">{card.title}</h3>
@@ -406,6 +435,18 @@ const Home = () => {
                     </FeatureGate>
                   ))}
                 </div>
+
+                {/* Start Chatting Button with glow */}
+                <Button 
+                  onClick={() => document.querySelector('textarea')?.focus()}
+                  className="relative mt-4 px-8 py-3 text-lg font-semibold bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 transition-all group"
+                >
+                  <span className="absolute inset-0 rounded-md bg-gradient-to-r from-primary to-purple-600 blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                  <span className="relative flex items-center">
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Start Chatting
+                  </span>
+                </Button>
               </div>
             ) : (
               <div className="max-w-4xl mx-auto space-y-6">
@@ -462,12 +503,7 @@ const Home = () => {
                             src={msg.generatedImage} 
                             alt="Generated" 
                             className="max-w-64 rounded-xl border-2 border-border cursor-pointer hover:scale-105 transition-transform"
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = msg.generatedImage!;
-                              link.download = `generated-image-${Date.now()}.png`;
-                              link.click();
-                            }}
+                            onClick={() => setImagePreview({ isOpen: true, url: msg.generatedImage! })}
                           />
                           <Button 
                             size="sm" 
@@ -501,6 +537,11 @@ const Home = () => {
                 ))}
                 
                 
+                 {/* AI Model Indicator */}
+                {isLoading && !typingMessage && (
+                  <AIModelIndicator modelName={currentModel} isWorking={true} />
+                )}
+                
                  {/* Typing Message with enhanced animation */}
                 {typingMessage && <TypingAnimation text={formatTextForDisplay(typingMessage)} />}
                 
@@ -519,7 +560,7 @@ const Home = () => {
                           <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                         </div>
                         <span className="text-sm font-medium">
-                          AI is thinking...
+                          Processing your request...
                         </span>
                       </div>
                     </div>
@@ -629,6 +670,13 @@ const Home = () => {
           onRegenerate={() => regenerateMessage(contextMenu.messageId)}
         />
       )}
+      
+      {/* Image Preview Modal */}
+      <ImagePreviewModal
+        isOpen={imagePreview.isOpen}
+        onClose={() => setImagePreview({ isOpen: false, url: "" })}
+        imageUrl={imagePreview.url}
+      />
     </SidebarProvider>
   );
 };
