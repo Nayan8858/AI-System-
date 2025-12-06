@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analytics_usage: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          id: string
+          image_analysis: boolean
+          model_used: string
+          pdf_uploaded: boolean
+          response_time_ms: number | null
+          tokens_or_words: number
+          user_id: string
+        }
+        Insert: {
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          image_analysis?: boolean
+          model_used: string
+          pdf_uploaded?: boolean
+          response_time_ms?: number | null
+          tokens_or_words?: number
+          user_id: string
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          image_analysis?: boolean
+          model_used?: string
+          pdf_uploaded?: boolean
+          response_time_ms?: number | null
+          tokens_or_words?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      billing_records: {
+        Row: {
+          amount_usd: number
+          created_at: string
+          due_date: string | null
+          id: string
+          invoice_sent: boolean
+          is_paid: boolean
+          period_end: string
+          period_start: string
+          total_analysis: number
+          total_images: number
+          total_words: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_usd?: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_sent?: boolean
+          is_paid?: boolean
+          period_end: string
+          period_start: string
+          total_analysis?: number
+          total_images?: number
+          total_words?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_sent?: boolean
+          is_paid?: boolean
+          period_end?: string
+          period_start?: string
+          total_analysis?: number
+          total_images?: number
+          total_words?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
