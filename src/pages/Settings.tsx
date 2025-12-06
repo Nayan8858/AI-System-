@@ -4,28 +4,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import Header from "@/components/Header";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import {
   Palette,
   Brain,
   Volume2,
   Shield,
   CreditCard,
-  Code,
-  Info,
+  Key,
+  Bell,
+  Link2,
+  LogOut,
+  Trash2,
+  ChevronRight,
+  ArrowLeft,
+  Sun,
+  Moon,
+  Monitor,
   Copy,
   RefreshCw,
-  Trash2,
-  Book
+  Eye,
+  EyeOff
 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,45 +50,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { PaymentModal } from "@/components/PaymentModal";
-import { APIAnalytics } from "@/components/APIAnalytics";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { clearMemory } from "@/utils/memorySystem";
 
 const Settings = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { subscribed, currentPlan } = useSubscription();
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [apiUsage, setApiUsage] = useState({ used: 0, limit: 100 });
+  const [showApiKey, setShowApiKey] = useState(false);
   const [isLoadingApiKey, setIsLoadingApiKey] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // Settings state
   const [settings, setSettings] = useState({
     theme: localStorage.getItem('theme') || 'auto',
     accentColor: localStorage.getItem('accentColor') || '#4F46E5',
     messageAnimation: localStorage.getItem('messageAnimation') !== 'false',
-    backgroundAnimation: localStorage.getItem('backgroundAnimation') || 'subtle',
-    fontStyle: localStorage.getItem('fontStyle') || 'default',
-    aiReplyStyle: localStorage.getItem('aiReplyStyle') || 'balanced',
     voiceReply: localStorage.getItem('voiceReply') === 'true',
     voiceInput: localStorage.getItem('voiceInput') === 'true',
     chatMemory: localStorage.getItem('chatMemory') !== 'false',
-    personality: localStorage.getItem('personality') || 'friendly',
     notificationSound: localStorage.getItem('notificationSound') === 'true',
-    typingSound: localStorage.getItem('typingSound') === 'true',
-    messagePopSound: localStorage.getItem('messagePopSound') === 'true',
-    idleReminder: localStorage.getItem('idleReminder') === 'true',
     doNotStore: localStorage.getItem('doNotStore') === 'true',
-    developerMode: localStorage.getItem('developerMode') === 'true',
-    showLogs: localStorage.getItem('showLogs') === 'true',
   });
 
   useEffect(() => {
@@ -89,7 +84,6 @@ const Settings = () => {
       const { data, error } = await supabase.functions.invoke('api-key-me');
       if (error) throw error;
       setApiKey(data.apiKey);
-      setApiUsage(data.usage);
     } catch (error) {
       console.error('Error fetching API key:', error);
     }
@@ -101,16 +95,9 @@ const Settings = () => {
       const { data, error } = await supabase.functions.invoke('api-key-create');
       if (error) throw error;
       setApiKey(data.apiKey);
-      toast({
-        title: "API Key Generated",
-        description: "Your new API key is ready to use.",
-      });
+      toast({ title: "API Key Generated", description: "Your new API key is ready." });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate API key. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to generate API key.", variant: "destructive" });
     } finally {
       setIsLoadingApiKey(false);
     }
@@ -122,16 +109,9 @@ const Settings = () => {
       const { data, error } = await supabase.functions.invoke('api-key-regenerate');
       if (error) throw error;
       setApiKey(data.apiKey);
-      toast({
-        title: "API Key Regenerated",
-        description: "Your old key has been revoked and a new one generated.",
-      });
+      toast({ title: "API Key Regenerated", description: "Your old key has been revoked." });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to regenerate API key.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to regenerate API key.", variant: "destructive" });
     } finally {
       setIsLoadingApiKey(false);
     }
@@ -140,568 +120,383 @@ const Settings = () => {
   const updateSetting = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     localStorage.setItem(key, String(value));
-    toast({
-      title: "Setting Updated",
-      description: "Your preferences have been saved.",
-    });
+    toast({ title: "Setting Updated", description: "Your preferences have been saved." });
   };
 
   const handleClearHistory = () => {
     localStorage.removeItem('chatHistory');
-    toast({
-      title: "History Cleared",
-      description: "All chat history has been deleted.",
-    });
-  };
-
-  const handleClearImages = () => {
-    localStorage.removeItem('generatedImages');
-    toast({
-      title: "Images Cleared",
-      description: "All saved images have been deleted.",
-    });
-  };
-
-  const handleResetPreferences = () => {
-    Object.keys(settings).forEach(key => localStorage.removeItem(key));
-    window.location.reload();
+    clearMemory();
+    toast({ title: "History Cleared", description: "All chat history has been deleted." });
   };
 
   const copyApiKey = () => {
     if (apiKey) {
       navigator.clipboard.writeText(apiKey);
-      toast({
-        title: "Copied!",
-        description: "API key copied to clipboard.",
-      });
+      toast({ title: "Copied!", description: "API key copied to clipboard." });
     }
   };
 
+  const themeOptions = [
+    { value: 'light', label: 'Light', icon: Sun },
+    { value: 'dark', label: 'Dark', icon: Moon },
+    { value: 'auto', label: 'System', icon: Monitor },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <Header />
-      <SidebarProvider>
-        <div className="flex min-h-[calc(100vh-64px)]">
-          <AppSidebar />
-          <main className="flex-1 p-6 animate-fade-in overflow-y-auto">
-            <div className="max-w-4xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-4xl font-bold mb-2">⚙️ Settings</h1>
-                <p className="text-muted-foreground">
-                  Customize your NayandeepGPT experience just the way you like 💫
-                </p>
-              </div>
+    <SidebarProvider>
+      <div className="h-screen flex w-full bg-background">
+        <AppSidebar />
+        
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="h-14 border-b border-border flex items-center px-4 justify-between bg-card/50 backdrop-blur-sm">
+            <div className="flex items-center space-x-4">
+              {isMobile && <SidebarTrigger />}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/home')}
+                className="flex items-center space-x-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back</span>
+              </Button>
+              <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+            </div>
+          </div>
 
-              <Tabs defaultValue="appearance" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 gap-2">
-                  <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                  <TabsTrigger value="ai">AI Behavior</TabsTrigger>
-                  <TabsTrigger value="sound">Sound</TabsTrigger>
-                  <TabsTrigger value="privacy">Privacy</TabsTrigger>
-                  <TabsTrigger value="billing">Billing</TabsTrigger>
-                  <TabsTrigger value="developer">Developer</TabsTrigger>
-                  <TabsTrigger value="system">System</TabsTrigger>
-                </TabsList>
-
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-2xl mx-auto space-y-4">
+              <Accordion type="multiple" className="space-y-4">
                 {/* Appearance */}
-                <TabsContent value="appearance" className="space-y-4">
-                  <Card className="bg-card/80 backdrop-blur border-border/50">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Palette className="w-5 h-5" />
-                        Appearance
-                      </CardTitle>
-                      <CardDescription>Personal visual setup</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <Label>🌗 Theme</Label>
-                        <Select value={settings.theme} onValueChange={(v) => updateSetting('theme', v)}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="light">Light</SelectItem>
-                            <SelectItem value="dark">Dark</SelectItem>
-                            <SelectItem value="aurora">Aurora</SelectItem>
-                            <SelectItem value="auto">Auto</SelectItem>
-                          </SelectContent>
-                        </Select>
+                <AccordionItem value="appearance" className="border rounded-2xl bg-card/50 backdrop-blur-sm px-4">
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                        <Palette className="w-5 h-5 text-purple-500" />
                       </div>
+                      <div className="text-left">
+                        <p className="font-medium">Appearance</p>
+                        <p className="text-sm text-muted-foreground">Theme, colors, animations</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    {/* Theme Selection */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Theme</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {themeOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            onClick={() => updateSetting('theme', option.value)}
+                            className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all ${
+                              settings.theme === option.value 
+                                ? 'border-primary bg-primary/10' 
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <option.icon className="w-5 h-5 mb-1" />
+                            <span className="text-xs">{option.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="accent-color">🎨 Accent Color</Label>
-                        <input
-                          id="accent-color"
-                          type="color"
-                          value={settings.accentColor}
-                          onChange={(e) => updateSetting('accentColor', e.target.value)}
-                          className="w-full h-12 rounded-md border border-input cursor-pointer"
-                        />
-                      </div>
+                    <Separator />
 
-                      <div className="flex items-center justify-between">
-                        <Label>✨ Message Animation</Label>
-                        <Switch
-                          checked={settings.messageAnimation}
-                          onCheckedChange={(v) => updateSetting('messageAnimation', v)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>🌀 Background Animation</Label>
-                        <Select value={settings.backgroundAnimation} onValueChange={(v) => updateSetting('backgroundAnimation', v)}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="subtle">Subtle</SelectItem>
-                            <SelectItem value="strong">Strong</SelectItem>
-                            <SelectItem value="off">Off</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>🔤 Font Style</Label>
-                        <Select value={settings.fontStyle} onValueChange={(v) => updateSetting('fontStyle', v)}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="default">Default</SelectItem>
-                            <SelectItem value="rounded">Rounded</SelectItem>
-                            <SelectItem value="modern">Modern</SelectItem>
-                            <SelectItem value="typewriter">Typewriter</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                    <div className="flex items-center justify-between">
+                      <Label>Message Animations</Label>
+                      <Switch
+                        checked={settings.messageAnimation}
+                        onCheckedChange={(v) => updateSetting('messageAnimation', v)}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
                 {/* AI Behavior */}
-                <TabsContent value="ai" className="space-y-4">
-                  <Card className="bg-card/80 backdrop-blur border-border/50">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Brain className="w-5 h-5" />
-                        AI Behavior
-                      </CardTitle>
-                      <CardDescription>Control personality & responses</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <Label>🧩 AI Reply Style</Label>
-                        <Select value={settings.aiReplyStyle} onValueChange={(v) => updateSetting('aiReplyStyle', v)}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="balanced">Balanced</SelectItem>
-                            <SelectItem value="creative">Creative</SelectItem>
-                            <SelectItem value="precise">Precise</SelectItem>
-                          </SelectContent>
-                        </Select>
+                <AccordionItem value="ai" className="border rounded-2xl bg-card/50 backdrop-blur-sm px-4">
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <Brain className="w-5 h-5 text-blue-500" />
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <Label>🗣️ Voice Reply (TTS)</Label>
-                        <Switch
-                          checked={settings.voiceReply}
-                          onCheckedChange={(v) => updateSetting('voiceReply', v)}
-                        />
+                      <div className="text-left">
+                        <p className="font-medium">AI Behavior</p>
+                        <p className="text-sm text-muted-foreground">Voice, memory, personality</p>
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <Label>🎙️ Voice Input (STT)</Label>
-                        <Switch
-                          checked={settings.voiceInput}
-                          onCheckedChange={(v) => updateSetting('voiceInput', v)}
-                        />
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Voice Reply (TTS)</Label>
+                        <p className="text-xs text-muted-foreground">AI speaks responses aloud</p>
                       </div>
+                      <Switch
+                        checked={settings.voiceReply}
+                        onCheckedChange={(v) => updateSetting('voiceReply', v)}
+                      />
+                    </div>
 
-                      <div className="flex items-center justify-between">
-                        <Label>💾 Chat Memory Save</Label>
-                        <Switch
-                          checked={settings.chatMemory}
-                          onCheckedChange={(v) => updateSetting('chatMemory', v)}
-                        />
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Voice Input (STT)</Label>
+                        <p className="text-xs text-muted-foreground">Speak to send messages</p>
                       </div>
+                      <Switch
+                        checked={settings.voiceInput}
+                        onCheckedChange={(v) => updateSetting('voiceInput', v)}
+                      />
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label>🧠 Personality</Label>
-                        <Select value={settings.personality} onValueChange={(v) => updateSetting('personality', v)}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="friendly">Friendly</SelectItem>
-                            <SelectItem value="professional">Professional</SelectItem>
-                            <SelectItem value="developer">Developer</SelectItem>
-                            <SelectItem value="tutor">Tutor</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    <Separator />
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Chat Memory</Label>
+                        <p className="text-xs text-muted-foreground">Remember conversation context</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                      <Switch
+                        checked={settings.chatMemory}
+                        onCheckedChange={(v) => updateSetting('chatMemory', v)}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                {/* Sound & Notifications */}
-                <TabsContent value="sound" className="space-y-4">
-                  <Card className="bg-card/80 backdrop-blur border-border/50">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Volume2 className="w-5 h-5" />
-                        Sound & Notifications
-                      </CardTitle>
-                      <CardDescription>Audio feedback & user activity</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <Label>🔔 Notification Sound</Label>
-                        <Switch
-                          checked={settings.notificationSound}
-                          onCheckedChange={(v) => updateSetting('notificationSound', v)}
-                        />
+                {/* Notifications */}
+                <AccordionItem value="notifications" className="border rounded-2xl bg-card/50 backdrop-blur-sm px-4">
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Bell className="w-5 h-5 text-green-500" />
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <Label>⌨️ Typing Sound</Label>
-                        <Switch
-                          checked={settings.typingSound}
-                          onCheckedChange={(v) => updateSetting('typingSound', v)}
-                        />
+                      <div className="text-left">
+                        <p className="font-medium">Notifications</p>
+                        <p className="text-sm text-muted-foreground">Sounds and alerts</p>
                       </div>
-
-                      <div className="flex items-center justify-between">
-                        <Label>💬 Message Pop Sound</Label>
-                        <Switch
-                          checked={settings.messagePopSound}
-                          onCheckedChange={(v) => updateSetting('messagePopSound', v)}
-                        />
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Notification Sounds</Label>
+                        <p className="text-xs text-muted-foreground">Play sounds for new messages</p>
                       </div>
+                      <Switch
+                        checked={settings.notificationSound}
+                        onCheckedChange={(v) => updateSetting('notificationSound', v)}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                      <div className="flex items-center justify-between">
-                        <Label>🕒 Idle Reminder (10 min)</Label>
-                        <Switch
-                          checked={settings.idleReminder}
-                          onCheckedChange={(v) => updateSetting('idleReminder', v)}
-                        />
+                {/* API Keys */}
+                <AccordionItem value="api" className="border rounded-2xl bg-card/50 backdrop-blur-sm px-4">
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
+                        <Key className="w-5 h-5 text-orange-500" />
                       </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Privacy & Data */}
-                <TabsContent value="privacy" className="space-y-4">
-                  <Card className="bg-card/80 backdrop-blur border-border/50">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Shield className="w-5 h-5" />
-                        Privacy & Data
-                      </CardTitle>
-                      <CardDescription>Manage storage & privacy</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" className="w-full gap-2">
-                            <Trash2 className="w-4 h-4" />
-                            🧹 Clear Chat History
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Clear Chat History?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete all your chat conversations.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleClearHistory}>Clear</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" className="w-full gap-2">
-                            <Trash2 className="w-4 h-4" />
-                            🗑️ Delete All Saved Images
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete All Images?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete all your generated images.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleClearImages}>Delete</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-
-                      <div className="flex items-center justify-between">
-                        <Label>🚫 Do Not Store My Data</Label>
-                        <Switch
-                          checked={settings.doNotStore}
-                          onCheckedChange={(v) => updateSetting('doNotStore', v)}
-                        />
+                      <div className="text-left">
+                        <p className="font-medium">API Keys</p>
+                        <p className="text-sm text-muted-foreground">Manage your API access</p>
                       </div>
-
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" className="w-full gap-2">
-                            <RefreshCw className="w-4 h-4" />
-                            🔄 Reset All Preferences
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Reset All Settings?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will reset all your preferences to default values.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleResetPreferences}>Reset</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Subscription & Billing */}
-                <TabsContent value="billing" className="space-y-4">
-                  <Card className="bg-card/80 backdrop-blur border-border/50">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CreditCard className="w-5 h-5" />
-                        Subscription & Billing
-                      </CardTitle>
-                      <CardDescription>Manage your plan and payments</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="p-4 bg-primary/10 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Current Plan</p>
-                            <p className="text-2xl font-bold">{currentPlan?.name || 'Free'}</p>
-                          </div>
-                          {subscribed && <span className="text-4xl">🌟</span>}
-                        </div>
-                      </div>
-
-                      {!subscribed && (
-                        <Button 
-                          className="w-full gap-2" 
-                          onClick={() => setShowPaymentModal(true)}
-                        >
-                          💰 Upgrade to Premium
-                        </Button>
-                      )}
-
-                      <div className="space-y-2">
-                        <Button variant="outline" className="w-full gap-2">
-                          <CreditCard className="w-4 h-4" />
-                          🧾 View Billing History
-                        </Button>
-
-                        {subscribed && (
-                          <Button variant="destructive" className="w-full gap-2">
-                            ❌ Cancel Subscription
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Developer Tools + API */}
-                <TabsContent value="developer" className="space-y-4">
-                  <Card className="bg-card/80 backdrop-blur border-border/50">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Code className="w-5 h-5" />
-                        Developer Tools + API Access
-                      </CardTitle>
-                      <CardDescription>Developer integrations & API monetization</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <APIAnalytics />
-
-                      <Separator />
-
-                      <div className="flex items-center justify-between">
-                        <Label>🧑‍💻 Developer Mode</Label>
-                        <Switch
-                          checked={settings.developerMode}
-                          onCheckedChange={(v) => updateSetting('developerMode', v)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <Label>📜 Show Logs</Label>
-                        <Switch
-                          checked={settings.showLogs}
-                          onCheckedChange={(v) => updateSetting('showLogs', v)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Button variant="outline" className="w-full">🧩 Run UI Test</Button>
-                        <Button variant="outline" className="w-full">🔄 Reset AI Context</Button>
-                      </div>
-
-                      <Separator />
-
-                      <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">API Access</h3>
-                        
-                        {!subscribed ? (
-                          <div className="p-6 bg-muted/50 rounded-lg text-center border-2 border-dashed border-border">
-                            <p className="text-muted-foreground mb-4">
-                              🔒 Upgrade to Premium to generate an API key
-                            </p>
-                            <Button onClick={() => setShowPaymentModal(true)}>
-                              Upgrade Now
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    {subscribed ? (
+                      <>
+                        {apiKey ? (
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-xl">
+                              <code className="flex-1 text-sm truncate">
+                                {showApiKey ? apiKey : '••••••••••••••••••••'}
+                              </code>
+                              <Button variant="ghost" size="icon" onClick={() => setShowApiKey(!showApiKey)}>
+                                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={copyApiKey}>
+                                <Copy className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              className="w-full" 
+                              onClick={handleRegenerateApiKey}
+                              disabled={isLoadingApiKey}
+                            >
+                              <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingApiKey ? 'animate-spin' : ''}`} />
+                              Regenerate Key
                             </Button>
                           </div>
                         ) : (
-                          <>
-                            {apiKey ? (
-                              <div className="space-y-4">
-                                <div className="p-4 bg-muted/50 rounded-lg font-mono text-sm">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-muted-foreground">Your API Key:</span>
-                                    <div className="flex gap-2">
-                                      <Button size="sm" variant="ghost" onClick={copyApiKey}>
-                                        <Copy className="w-4 h-4" />
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button size="sm" variant="ghost">
-                                            <RefreshCw className="w-4 h-4" />
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Regenerate API Key?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              This will revoke your current key. Update all applications using the old key.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleRegenerateApiKey}>
-                                              Regenerate
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                  </div>
-                                  <p className="break-all">{apiKey}</p>
-                                </div>
-
-                                <div className="p-4 bg-primary/10 rounded-lg">
-                                  <p className="text-sm text-muted-foreground">Requests Used:</p>
-                                  <p className="text-xl font-bold">{apiUsage.used} / {apiUsage.limit} today</p>
-                                </div>
-
-                                <div className="text-sm space-y-1">
-                                  <p className="text-muted-foreground">Endpoint:</p>
-                                  <p className="font-mono bg-muted/50 p-2 rounded">
-                                    https://nayandeepgpt.cloud/api/v1/generate
-                                  </p>
-                                </div>
-
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="outline" className="w-full gap-2">
-                                      <Book className="w-4 h-4" />
-                                      View API Docs
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-2xl">
-                                    <DialogHeader>
-                                      <DialogTitle>📘 NayandeepGPT API</DialogTitle>
-                                      <DialogDescription>API documentation and examples</DialogDescription>
-                                    </DialogHeader>
-                                    <div className="space-y-4 text-sm">
-                                      <div>
-                                        <p className="font-semibold mb-2">POST /api/v1/generate</p>
-                                        <div className="bg-muted/50 p-4 rounded-lg font-mono space-y-2">
-                                          <p className="text-muted-foreground">Headers:</p>
-                                          <p>Authorization: Bearer YOUR_API_KEY</p>
-                                          <p>Content-Type: application/json</p>
-                                          <p className="text-muted-foreground mt-4">Body:</p>
-                                          <p>{`{ "prompt": "Write a poem", "mode": "text" }`}</p>
-                                          <p className="text-muted-foreground mt-4">Response:</p>
-                                          <p>{`{ "result": "..." }`}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
-                              </div>
-                            ) : (
-                              <Button 
-                                onClick={handleGenerateApiKey} 
-                                disabled={isLoadingApiKey}
-                                className="w-full"
-                              >
-                                {isLoadingApiKey ? 'Generating...' : 'Generate API Key'}
-                              </Button>
-                            )}
-                          </>
+                          <Button 
+                            className="w-full" 
+                            onClick={handleGenerateApiKey}
+                            disabled={isLoadingApiKey}
+                          >
+                            Generate API Key
+                          </Button>
                         )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Upgrade to a paid plan to access API keys
+                      </p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
 
-                {/* System Info */}
-                <TabsContent value="system" className="space-y-4">
-                  <Card className="bg-card/80 backdrop-blur border-border/50">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Info className="w-5 h-5" />
-                        System Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="text-center space-y-2 py-6">
-                        <p className="text-xl font-semibold">NayandeepGPT v2.1</p>
-                        <p className="text-muted-foreground">Powered by Lovable Cloud & Stripe</p>
-                        <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                          All local data encrypted 🔒
-                        </p>
+                {/* Billing */}
+                <AccordionItem value="billing" className="border rounded-2xl bg-card/50 backdrop-blur-sm px-4">
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                        <CreditCard className="w-5 h-5 text-emerald-500" />
                       </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+                      <div className="text-left">
+                        <p className="font-medium">Billing</p>
+                        <p className="text-sm text-muted-foreground">Subscription and payments</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    <div className="p-4 rounded-xl bg-muted/30">
+                      <p className="text-sm font-medium">Current Plan</p>
+                      <p className="text-2xl font-bold text-primary">{currentPlan?.name || 'Free'}</p>
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={() => navigate('/pricing')}
+                    >
+                      {subscribed ? 'Manage Subscription' : 'Upgrade Plan'}
+                    </Button>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Privacy */}
+                <AccordionItem value="privacy" className="border rounded-2xl bg-card/50 backdrop-blur-sm px-4">
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                        <Shield className="w-5 h-5 text-red-500" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">Privacy & Data</p>
+                        <p className="text-sm text-muted-foreground">Manage your data</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Do Not Store Data</Label>
+                        <p className="text-xs text-muted-foreground">Prevent data collection</p>
+                      </div>
+                      <Switch
+                        checked={settings.doNotStore}
+                        onCheckedChange={(v) => updateSetting('doNotStore', v)}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="w-full text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Clear All History
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Clear All History?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete all your chat conversations and memory.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleClearHistory}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Connected Accounts */}
+                <AccordionItem value="accounts" className="border rounded-2xl bg-card/50 backdrop-blur-sm px-4">
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center">
+                        <Link2 className="w-5 h-5 text-cyan-500" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">Connected Accounts</p>
+                        <p className="text-sm text-muted-foreground">Linked services</p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4 space-y-4">
+                    <div className="p-4 rounded-xl bg-muted/30 flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{user?.emailAddresses?.[0]?.emailAddress || 'Email'}</p>
+                        <p className="text-xs text-muted-foreground">Primary account</p>
+                      </div>
+                      <span className="text-xs text-green-500 bg-green-500/10 px-2 py-1 rounded-full">Connected</span>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              {/* Danger Zone */}
+              <Card className="border-destructive/50 bg-destructive/5">
+                <CardHeader>
+                  <CardTitle className="text-destructive flex items-center space-x-2">
+                    <Trash2 className="w-5 h-5" />
+                    <span>Danger Zone</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button variant="outline" className="w-full">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout All Devices
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="w-full">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Account
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. All your data will be permanently deleted.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction className="bg-destructive hover:bg-destructive/90">
+                          Delete Account
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
             </div>
-          </main>
+          </div>
         </div>
-      </SidebarProvider>
-
-      <PaymentModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        planName="Premium"
-        planPrice="₹199/month"
-        priceId="price_premium"
-      />
-    </div>
+      </div>
+    </SidebarProvider>
   );
 };
 

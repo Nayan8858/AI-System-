@@ -3,17 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  Upload, 
   Search, 
-  X, 
   Square, 
   Send,
   Crown,
-  Lightbulb,
-  Diamond,
-  Globe,
   Code,
-  Sparkles
+  Sparkles,
+  FileText,
+  Globe,
+  GraduationCap,
+  Mic,
+  Bot
 } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,7 +22,7 @@ import ImageUpload from "@/components/ImageUpload";
 import ImageSearchResults from "@/components/ImageSearchResults";
 import WebSearchResults from "@/components/WebSearchResults";
 import ChatModeSelector from "@/components/ChatModeSelector";
-import AttachmentMenu from "@/components/AttachmentMenu";
+import ToolPanel from "@/components/ToolPanel";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -42,10 +42,11 @@ import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { ChatTabs, ChatTab } from "@/components/ChatTabs";
 import { TemplateLibrary } from "@/components/TemplateLibrary";
 import { LuxuryUILayer } from "@/components/LuxuryUILayer";
-import { AIModelIndicator } from "@/components/AIModelIndicator";
+import { AIModelIndicator, ModelBadge } from "@/components/AIModelIndicator";
 import { ImagePreviewModal } from "@/components/ImagePreviewModal";
 import { getWelcomeMessage, saveMemory, saveConversationSummary } from "@/utils/memorySystem";
 import logo from "@/assets/logo.png";
+import aiRobot from "@/assets/ai-robot-illustration.png";
 
 const Home = () => {
   const [message, setMessage] = useState("");
@@ -63,8 +64,9 @@ const Home = () => {
   const [currentModel, setCurrentModel] = useState("DeepSeek-V3.1");
   const [imagePreview, setImagePreview] = useState<{ isOpen: boolean; url: string }>({ isOpen: false, url: "" });
   const [chatTabs, setChatTabs] = useState<ChatTab[]>([
-    { id: '1', title: 'New Chat', icon: '💬', messages: [] }
+    { id: '1', title: 'New Chat', icon: 'chat', messages: [] }
   ]);
+  const [toolPanelOpen, setToolPanelOpen] = useState(false);
   const [activeTabId, setActiveTabId] = useState('1');
   const { user } = useAuth();
   const location = useLocation();
@@ -182,8 +184,8 @@ const Home = () => {
   ];
 
   const rightSidebarIcons = [
-    { icon: Lightbulb, tooltip: "Ideas" },
-    { icon: Diamond, tooltip: "Premium" },
+    { icon: Sparkles, tooltip: "Ideas" },
+    { icon: Crown, tooltip: "Premium" },
     { icon: Search, tooltip: "Search" },
     { icon: Globe, tooltip: "Web" },
   ];
@@ -587,12 +589,14 @@ const Home = () => {
                   </div>
                 )}
                 
-                <div className="flex items-center space-x-2 bg-card border-2 border-border rounded-[20px] p-3 shadow-lg">
-                  <AttachmentMenu 
+                <div className="flex items-center space-x-2 bg-foreground/95 dark:bg-card border-2 border-border rounded-full p-2 shadow-2xl">
+                  <ToolPanel 
+                    isOpen={toolPanelOpen}
+                    onOpenChange={setToolPanelOpen}
                     onImageUpload={uploadImage}
-                    onImageSearchToggle={() => setImageSearchActive(!imageSearchActive)}
-                    imageSearchActive={imageSearchActive}
-                    onModeChange={setChatMode}
+                    onCameraCapture={() => {}}
+                    onPDFUpload={(file) => console.log('PDF uploaded:', file.name)}
+                    onModeChange={(mode) => setChatMode(mode as any)}
                   />
                   <VoiceAssistant onTranscript={handleVoiceTranscript} />
                   <Button
