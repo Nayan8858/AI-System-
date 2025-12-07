@@ -64,6 +64,13 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     if (pdfInputRef.current) pdfInputRef.current.value = '';
   };
 
+  const handleModelSelect = () => {
+    onOpenChange(false); // Close tool panel first
+    setTimeout(() => {
+      onModelSelect?.(); // Then open model panel
+    }, 100);
+  };
+
   const topActions = [
     { 
       icon: Camera, 
@@ -93,7 +100,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
       icon: Bot, 
       label: 'Model', 
       description: 'Select AI model',
-      onClick: () => { onModelSelect?.(); onOpenChange(false); }
+      onClick: handleModelSelect
     },
     { 
       icon: Sparkles, 

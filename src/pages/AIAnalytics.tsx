@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, TrendingUp, Zap, Image, FileText, DollarSign, BarChart3 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Zap, Image, FileText, DollarSign, BarChart3, RefreshCw } from 'lucide-react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ModelUsage {
   model: string;
@@ -15,38 +18,168 @@ interface ModelUsage {
   color: string;
 }
 
+interface AnalyticsData {
+  totalCalls: number;
+  totalWords: number;
+  imageAnalysis: number;
+  pdfUploads: number;
+  monthlyBill: number;
+}
+
+// Pricing constants
+const PRICE_PER_1000_WORDS = 0.40;
+const PRICE_PER_IMAGE = 1.50;
+const PRICE_PER_ANALYSIS = 2.10;
+
 const AIAnalytics = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  
-  // Sample analytics data - would come from Lovable Cloud DB
-  const [analytics] = useState({
-    totalCalls: 1247,
-    totalWords: 89432,
-    imageAnalysis: 156,
-    pdfUploads: 43,
-    monthlyBill: 12.47,
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<AnalyticsData>({
+    totalCalls: 0,
+    totalWords: 0,
+    imageAnalysis: 0,
+    pdfUploads: 0,
+    monthlyBill: 0,
   });
+  const [modelUsageData, setModelUsageData] = useState<ModelUsage[]>([]);
+  const [weeklyData, setWeeklyData] = useState<{ day: string; calls: number; words: number }[]>([]);
 
-  const modelUsageData: ModelUsage[] = [
-    { model: 'DeepSeek-V3.1', calls: 450, words: 32000, color: '#3B82F6' },
-    { model: 'Qwen2.5-Coder', calls: 280, words: 18500, color: '#22C55E' },
-    { model: 'Qwen3-235B', calls: 190, words: 12800, color: '#A855F7' },
-    { model: 'LLaMA-4-Scout', calls: 120, words: 9800, color: '#F97316' },
-    { model: 'Gemini-2.0', calls: 95, words: 7200, color: '#06B6D4' },
-    { model: 'DeepSeek-R1', calls: 72, words: 5400, color: '#6366F1' },
-    { model: 'LLaMA-3.3', calls: 40, words: 3732, color: '#EC4899' },
-  ];
+  const modelColors: Record<string, string> = {
+    'DeepSeek-V3.1': '#3B82F6',
+    'Qwen2.5-Coder': '#22C55E',
+    'Qwen3-235B': '#A855F7',
+    'LLaMA-4-Scout': '#F97316',
+    'LLaMA-3.3-70B': '#EC4899',
+    'Gemini-2.0': '#06B6D4',
+    'DeepSeek-R1': '#6366F1',
+    'Qwen2.5-VL': '#8B5CF6',
+  };
 
-  const weeklyData = [
-    { day: 'Mon', calls: 145, words: 10200 },
-    { day: 'Tue', calls: 198, words: 14500 },
-    { day: 'Wed', calls: 167, words: 12300 },
-    { day: 'Thu', calls: 212, words: 15800 },
-    { day: 'Fri', calls: 189, words: 13900 },
-    { day: 'Sat', calls: 156, words: 11200 },
-    { day: 'Sun', calls: 180, words: 11532 },
-  ];
+  const fetchAnalytics = async () => {
+    if (!user?.id) return;
+    
+    setIsLoading(true);
+    try {
+      // Fetch analytics data from Supabase
+      const { data: usageData, error } = await supabase
+        .from('analytics_usage')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching analytics:', error);
+        // Use cached data from localStorage as fallback
+        loadCachedAnalytics();
+        return;
+      }
+
+      if (usageData && usageData.length > 0) {
+        // Calculate totals
+        const totals = usageData.reduce((acc, item) => ({
+          totalCalls: acc.totalCalls + 1,
+          totalWords: acc.totalWords + (item.tokens_or_words || 0),
+          imageAnalysis: acc.imageAnalysis + (item.image_analysis ? 1 : 0),
+          pdfUploads: acc.pdfUploads + (item.pdf_uploaded ? 1 : 0),
+          totalCost: acc.totalCost + (item.cost_usd || 0),
+        }), { totalCalls: 0, totalWords: 0, imageAnalysis: 0, pdfUploads: 0, totalCost: 0 });
+
+        // Calculate monthly bill based on pricing
+        const monthlyBill = 
+          (totals.totalWords / 1000) * PRICE_PER_1000_WORDS +
+          totals.imageAnalysis * PRICE_PER_ANALYSIS +
+          totals.pdfUploads * PRICE_PER_ANALYSIS;
+
+        setAnalytics({
+          totalCalls: totals.totalCalls,
+          totalWords: totals.totalWords,
+          imageAnalysis: totals.imageAnalysis,
+          pdfUploads: totals.pdfUploads,
+          monthlyBill: Math.round(monthlyBill * 100) / 100,
+        });
+
+        // Calculate model usage
+        const modelMap = new Map<string, { calls: number; words: number }>();
+        usageData.forEach(item => {
+          const model = item.model_used || 'DeepSeek-V3.1';
+          const existing = modelMap.get(model) || { calls: 0, words: 0 };
+          modelMap.set(model, {
+            calls: existing.calls + 1,
+            words: existing.words + (item.tokens_or_words || 0),
+          });
+        });
+
+        const modelUsage: ModelUsage[] = Array.from(modelMap.entries()).map(([model, data]) => ({
+          model,
+          calls: data.calls,
+          words: data.words,
+          color: modelColors[model] || '#6B7280',
+        }));
+
+        setModelUsageData(modelUsage.sort((a, b) => b.calls - a.calls));
+
+        // Calculate weekly data
+        const now = new Date();
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const weekly: { day: string; calls: number; words: number }[] = [];
+        
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(now);
+          date.setDate(date.getDate() - i);
+          const dayStart = new Date(date.setHours(0, 0, 0, 0));
+          const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+          
+          const dayData = usageData.filter(item => {
+            const itemDate = new Date(item.created_at);
+            return itemDate >= dayStart && itemDate <= dayEnd;
+          });
+
+          weekly.push({
+            day: dayNames[date.getDay()],
+            calls: dayData.length,
+            words: dayData.reduce((sum, item) => sum + (item.tokens_or_words || 0), 0),
+          });
+        }
+        
+        setWeeklyData(weekly);
+
+        // Cache the data
+        localStorage.setItem('nayandeep_analytics_cache', JSON.stringify({
+          analytics: { ...totals, monthlyBill },
+          modelUsage,
+          weeklyData: weekly,
+          timestamp: Date.now(),
+        }));
+      } else {
+        loadCachedAnalytics();
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      loadCachedAnalytics();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadCachedAnalytics = () => {
+    const cached = localStorage.getItem('nayandeep_analytics_cache');
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        setAnalytics(data.analytics || analytics);
+        setModelUsageData(data.modelUsage || []);
+        setWeeklyData(data.weeklyData || []);
+      } catch (e) {
+        console.error('Failed to parse cached analytics:', e);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [user?.id]);
 
   return (
     <SidebarProvider>
@@ -69,6 +202,10 @@ const AIAnalytics = () => {
               </Button>
               <h1 className="text-xl font-semibold text-foreground">AI Analytics</h1>
             </div>
+            <Button variant="outline" size="sm" onClick={fetchAnalytics} disabled={isLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
 
           {/* Content */}
@@ -81,7 +218,11 @@ const AIAnalytics = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Total API Calls</p>
-                        <p className="text-2xl font-bold text-foreground">{analytics.totalCalls.toLocaleString()}</p>
+                        {isLoading ? (
+                          <Skeleton className="h-8 w-20" />
+                        ) : (
+                          <p className="text-2xl font-bold text-foreground">{analytics.totalCalls.toLocaleString()}</p>
+                        )}
                       </div>
                       <Zap className="w-8 h-8 text-blue-500" />
                     </div>
@@ -93,7 +234,11 @@ const AIAnalytics = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Words Generated</p>
-                        <p className="text-2xl font-bold text-foreground">{analytics.totalWords.toLocaleString()}</p>
+                        {isLoading ? (
+                          <Skeleton className="h-8 w-24" />
+                        ) : (
+                          <p className="text-2xl font-bold text-foreground">{analytics.totalWords.toLocaleString()}</p>
+                        )}
                       </div>
                       <TrendingUp className="w-8 h-8 text-green-500" />
                     </div>
@@ -105,7 +250,11 @@ const AIAnalytics = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Image Analysis</p>
-                        <p className="text-2xl font-bold text-foreground">{analytics.imageAnalysis}</p>
+                        {isLoading ? (
+                          <Skeleton className="h-8 w-16" />
+                        ) : (
+                          <p className="text-2xl font-bold text-foreground">{analytics.imageAnalysis}</p>
+                        )}
                       </div>
                       <Image className="w-8 h-8 text-purple-500" />
                     </div>
@@ -117,7 +266,11 @@ const AIAnalytics = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">PDF Uploads</p>
-                        <p className="text-2xl font-bold text-foreground">{analytics.pdfUploads}</p>
+                        {isLoading ? (
+                          <Skeleton className="h-8 w-12" />
+                        ) : (
+                          <p className="text-2xl font-bold text-foreground">{analytics.pdfUploads}</p>
+                        )}
                       </div>
                       <FileText className="w-8 h-8 text-orange-500" />
                     </div>
@@ -129,7 +282,11 @@ const AIAnalytics = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground">Monthly Bill (USD)</p>
-                        <p className="text-2xl font-bold text-foreground">${analytics.monthlyBill.toFixed(2)}</p>
+                        {isLoading ? (
+                          <Skeleton className="h-8 w-20" />
+                        ) : (
+                          <p className="text-2xl font-bold text-foreground">${analytics.monthlyBill.toFixed(2)}</p>
+                        )}
                       </div>
                       <DollarSign className="w-8 h-8 text-emerald-500" />
                     </div>
@@ -149,33 +306,39 @@ const AIAnalytics = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={weeklyData}>
-                          <defs>
-                            <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                          <XAxis dataKey="day" className="text-muted-foreground" />
-                          <YAxis className="text-muted-foreground" />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--card))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }} 
-                          />
-                          <Area 
-                            type="monotone" 
-                            dataKey="calls" 
-                            stroke="hsl(var(--primary))" 
-                            fillOpacity={1} 
-                            fill="url(#colorCalls)" 
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
+                      {isLoading ? (
+                        <div className="h-full flex items-center justify-center">
+                          <Skeleton className="h-full w-full" />
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={weeklyData}>
+                            <defs>
+                              <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                            <XAxis dataKey="day" className="text-muted-foreground" />
+                            <YAxis className="text-muted-foreground" />
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'hsl(var(--card))', 
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px'
+                              }} 
+                            />
+                            <Area 
+                              type="monotone" 
+                              dataKey="calls" 
+                              stroke="hsl(var(--primary))" 
+                              fillOpacity={1} 
+                              fill="url(#colorCalls)" 
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -190,30 +353,40 @@ const AIAnalytics = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={modelUsageData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="calls"
-                          >
-                            {modelUsageData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--card))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }} 
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      {isLoading ? (
+                        <div className="h-full flex items-center justify-center">
+                          <Skeleton className="h-full w-full rounded-full" />
+                        </div>
+                      ) : modelUsageData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={modelUsageData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={80}
+                              paddingAngle={5}
+                              dataKey="calls"
+                            >
+                              {modelUsageData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'hsl(var(--card))', 
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px'
+                              }} 
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                          No usage data yet
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -225,36 +398,48 @@ const AIAnalytics = () => {
                   <CardTitle>Model Performance Breakdown</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {modelUsageData.map((model) => (
-                      <div key={model.model} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center space-x-3">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: model.color }}
-                          />
-                          <span className="font-medium">{model.model}</span>
-                        </div>
-                        <div className="flex items-center space-x-6 text-sm">
-                          <div className="text-muted-foreground">
-                            <span className="font-semibold text-foreground">{model.calls}</span> calls
-                          </div>
-                          <div className="text-muted-foreground">
-                            <span className="font-semibold text-foreground">{model.words.toLocaleString()}</span> words
-                          </div>
-                          <div className="w-32 bg-muted rounded-full h-2">
+                  {isLoading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3, 4].map(i => (
+                        <Skeleton key={i} className="h-14 w-full" />
+                      ))}
+                    </div>
+                  ) : modelUsageData.length > 0 ? (
+                    <div className="space-y-4">
+                      {modelUsageData.map((model) => (
+                        <div key={model.model} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                          <div className="flex items-center space-x-3">
                             <div 
-                              className="h-2 rounded-full transition-all"
-                              style={{ 
-                                width: `${(model.calls / 450) * 100}%`,
-                                backgroundColor: model.color
-                              }}
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: model.color }}
                             />
+                            <span className="font-medium">{model.model}</span>
+                          </div>
+                          <div className="flex items-center space-x-6 text-sm">
+                            <div className="text-muted-foreground">
+                              <span className="font-semibold text-foreground">{model.calls}</span> calls
+                            </div>
+                            <div className="text-muted-foreground">
+                              <span className="font-semibold text-foreground">{model.words.toLocaleString()}</span> words
+                            </div>
+                            <div className="w-32 bg-muted rounded-full h-2">
+                              <div 
+                                className="h-2 rounded-full transition-all"
+                                style={{ 
+                                  width: `${Math.min((model.calls / Math.max(...modelUsageData.map(m => m.calls))) * 100, 100)}%`,
+                                  backgroundColor: model.color
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No model usage data yet. Start chatting to see analytics!
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -269,20 +454,30 @@ const AIAnalytics = () => {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 rounded-lg bg-background/50">
-                      <p className="text-sm text-muted-foreground">API Calls</p>
-                      <p className="text-xl font-bold">$8.24</p>
+                      <p className="text-sm text-muted-foreground">LLM Usage</p>
+                      <p className="text-xl font-bold">
+                        ${((analytics.totalWords / 1000) * PRICE_PER_1000_WORDS).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">${PRICE_PER_1000_WORDS}/1K words</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-background/50">
                       <p className="text-sm text-muted-foreground">Image Analysis</p>
-                      <p className="text-xl font-bold">$2.34</p>
+                      <p className="text-xl font-bold">
+                        ${(analytics.imageAnalysis * PRICE_PER_ANALYSIS).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">${PRICE_PER_ANALYSIS}/analysis</p>
                     </div>
                     <div className="text-center p-4 rounded-lg bg-background/50">
                       <p className="text-sm text-muted-foreground">PDF Processing</p>
-                      <p className="text-xl font-bold">$1.29</p>
+                      <p className="text-xl font-bold">
+                        ${(analytics.pdfUploads * PRICE_PER_ANALYSIS).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">${PRICE_PER_ANALYSIS}/upload</p>
                     </div>
-                    <div className="text-center p-4 rounded-lg bg-background/50">
-                      <p className="text-sm text-muted-foreground">Storage</p>
-                      <p className="text-xl font-bold">$0.60</p>
+                    <div className="text-center p-4 rounded-lg bg-primary/20">
+                      <p className="text-sm text-muted-foreground">Total Bill</p>
+                      <p className="text-2xl font-bold text-primary">${analytics.monthlyBill.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">This month</p>
                     </div>
                   </div>
                   <div className="mt-4 text-center text-sm text-muted-foreground">
