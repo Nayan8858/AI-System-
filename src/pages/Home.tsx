@@ -3,16 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  Search, 
   Square, 
   Send,
   Crown,
   Code,
   Sparkles,
-  FileText,
-  Globe,
-  GraduationCap,
+  Search,
   Mic,
+  User,
   Bot
 } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
@@ -21,8 +19,8 @@ import { useAdvancedChat } from "@/hooks/useAdvancedChat";
 import ImageUpload from "@/components/ImageUpload";
 import ImageSearchResults from "@/components/ImageSearchResults";
 import WebSearchResults from "@/components/WebSearchResults";
-import ChatModeSelector from "@/components/ChatModeSelector";
 import ToolPanel from "@/components/ToolPanel";
+import ModelControlPanel from "@/components/ModelControlPanel";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -46,7 +44,6 @@ import { AIModelIndicator, ModelBadge } from "@/components/AIModelIndicator";
 import { ImagePreviewModal } from "@/components/ImagePreviewModal";
 import { getWelcomeMessage, saveMemory, saveConversationSummary } from "@/utils/memorySystem";
 import logo from "@/assets/logo.png";
-import aiRobot from "@/assets/ai-robot-illustration.png";
 
 const Home = () => {
   const [message, setMessage] = useState("");
@@ -67,6 +64,7 @@ const Home = () => {
     { id: '1', title: 'New Chat', icon: 'chat', messages: [] }
   ]);
   const [toolPanelOpen, setToolPanelOpen] = useState(false);
+  const [modelPanelOpen, setModelPanelOpen] = useState(false);
   const [activeTabId, setActiveTabId] = useState('1');
   const { user } = useAuth();
   const location = useLocation();
@@ -106,22 +104,40 @@ const Home = () => {
     }
   }, [user]);
 
-  // Save conversation summary when messages change
+  // Save conversation to history when messages change
   useEffect(() => {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.role === 'user') {
         saveConversationSummary(lastMessage.content.slice(0, 50));
       }
+      
+      // Save to history
+      const sessionId = activeTabId;
+      const chatData = {
+        id: sessionId,
+        summary: messages[0]?.content.slice(0, 50) || 'New conversation',
+        timestamp: new Date().toISOString(),
+        messageCount: messages.length,
+      };
+      
+      // Save individual chat
+      localStorage.setItem(`chat_${sessionId}`, JSON.stringify(messages));
+      
+      // Update history list
+      const historyKey = 'nayandeep_chats';
+      const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+      const updatedHistory = existingHistory.filter((h: any) => h.id !== sessionId);
+      updatedHistory.unshift(chatData);
+      localStorage.setItem(historyKey, JSON.stringify(updatedHistory.slice(0, 50)));
     }
-  }, [messages]);
+  }, [messages, activeTabId]);
   
   // Handle initial message from navigation state
   useEffect(() => {
     const state = location.state as { initialMessage?: string };
     if (state?.initialMessage) {
       setMessage(state.initialMessage);
-      // Clear the state
       window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -136,7 +152,7 @@ const Home = () => {
     }
   }, [messages, isLoading, typingMessage]);
 
-  // Payment success handling with subscription details
+  // Payment success handling
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentSuccess = urlParams.get('payment');
@@ -144,21 +160,17 @@ const Home = () => {
     const planPrice = urlParams.get('price');
     
     if (paymentSuccess === 'success') {
-      // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
-      
-      // Show confetti effect
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
       
-      // Show success message with plan details
       setTimeout(() => {
         const successMessage = planName && planPrice 
-          ? `✅ Premium Unlocked! You have completed your payment of $${planPrice} for ${planName}.`
-          : "✅ Premium Unlocked! Welcome to your new plan! Your subscription is now active.";
+          ? `Premium Unlocked! You have completed your payment of $${planPrice} for ${planName}.`
+          : "Premium Unlocked! Welcome to your new plan! Your subscription is now active.";
           
         toast({
-          title: "Payment Successful! 🎉",
+          title: "Payment Successful!",
           description: successMessage,
         });
       }, 500);
@@ -183,16 +195,8 @@ const Home = () => {
     }
   ];
 
-  const rightSidebarIcons = [
-    { icon: Sparkles, tooltip: "Ideas" },
-    { icon: Crown, tooltip: "Premium" },
-    { icon: Search, tooltip: "Search" },
-    { icon: Globe, tooltip: "Web" },
-  ];
-
   const handleSendMessage = async () => {
     if (message.trim() && !isLoading) {
-      // Detect which model will be used based on message content
       const q = message.toLowerCase();
       if (q.includes("code") || q.includes("debug") || q.includes("html")) {
         setCurrentModel("Qwen2.5-Coder-32B");
@@ -212,15 +216,12 @@ const Home = () => {
         setCurrentModel("DeepSeek-V3.1");
       }
       
-      // Trigger send animation
       setSendAnimation(true);
       setTimeout(() => setSendAnimation(false), 600);
       
-      // Auto-detect query type and handle code mode
       const queryType = detectQueryType(message);
       
       if (queryType === 'code') {
-        // Check if it's a website creation request
         const websiteKeywords = ['create a website', 'make a website', 'build a website', 
           'website using html', 'portfolio website', 'landing page', 'responsive webpage', 
           'web page', 'website with', 'design a website', 'generate website'];
@@ -230,7 +231,6 @@ const Home = () => {
         );
         
         if (isWebsiteRequest) {
-          // Activate code mode for website building
           setCodeModeActive(true);
           setCodeContent('<!-- Website code will be generated here -->');
         }
@@ -274,7 +274,7 @@ const Home = () => {
     const newTab: ChatTab = {
       id: Date.now().toString(),
       title: `Chat ${chatTabs.length + 1}`,
-      icon: '💬',
+      icon: 'chat',
       messages: []
     };
     setChatTabs([...chatTabs, newTab]);
@@ -304,6 +304,13 @@ const Home = () => {
     setMessage(prompts[action] || '');
   };
 
+  const handleModelSave = (enabledModels: string[]) => {
+    toast({
+      title: "Models Updated",
+      description: `${enabledModels.length} models are now active for routing.`,
+    });
+  };
+
   return (
     <SidebarProvider>
       {showConfetti && <ConfettiEffect />}
@@ -318,6 +325,13 @@ const Home = () => {
           }}
         />
       )}
+      
+      {/* Model Control Panel */}
+      <ModelControlPanel 
+        isOpen={modelPanelOpen}
+        onClose={() => setModelPanelOpen(false)}
+        onSave={handleModelSave}
+      />
       
       <div className="h-screen flex w-full" 
            style={{ background: 'var(--chat-gradient)' }}>
@@ -376,7 +390,7 @@ const Home = () => {
         {/* Sidebar */}
         <AppSidebar />
 
-        {/* Main Content */}
+        {/* Main Content - No right sidebar */}
         <div className="flex-1 flex flex-col pt-14">
           {/* Chat Tabs */}
           <ChatTabs
@@ -394,7 +408,6 @@ const Home = () => {
               <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto text-center space-y-8">
                 {/* Premium Hero Section */}
                 <div className="relative space-y-4 animate-fade-in">
-                  {/* Glow Effect */}
                   <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl opacity-50 animate-pulse" />
                   
                   <div className="relative">
@@ -410,7 +423,7 @@ const Home = () => {
                 {/* Template Library */}
                 <TemplateLibrary onSelectTemplate={(prompt) => setMessage(prompt)} />
 
-                {/* Action Cards with enhanced styling */}
+                {/* Action Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
                   {actionCards.map((card, index) => (
                     <FeatureGate 
@@ -438,7 +451,7 @@ const Home = () => {
                   ))}
                 </div>
 
-                {/* Start Chatting Button with glow */}
+                {/* Start Chatting Button */}
                 <Button 
                   onClick={() => document.querySelector('textarea')?.focus()}
                   className="relative mt-4 px-8 py-3 text-lg font-semibold bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 transition-all group"
@@ -465,23 +478,11 @@ const Home = () => {
                       }`}
                       style={{ boxShadow: 'var(--message-shadow)' }}
                       onContextMenu={(e) => msg.role === 'assistant' && handleContextMenu(e, msg.id || `${index}`, msg.content)}
-                      onTouchStart={(e) => {
-                        if (msg.role === 'assistant') {
-                          const timer = setTimeout(() => {
-                            const touch = e.touches[0];
-                            handleContextMenu(e as any, msg.id || `${index}`, msg.content);
-                          }, 500);
-                          
-                          const clearTimer = () => clearTimeout(timer);
-                          e.currentTarget.addEventListener('touchend', clearTimer, { once: true });
-                          e.currentTarget.addEventListener('touchmove', clearTimer, { once: true });
-                        }
-                      }}
                      >
                       <div className="flex items-start space-x-2">
-                        <span className="text-2xl">
-                          {msg.role === 'user' ? '👤' : '🤖'}
-                        </span>
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-muted/20">
+                          {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                        </div>
                         <div className="flex-1">
                           <p className="whitespace-pre-wrap">
                             {formatTextForDisplay(msg.content)}
@@ -531,20 +532,31 @@ const Home = () => {
                         />
                       )}
                       
-                      <p className="text-xs opacity-60 mt-2">
-                        {msg.timestamp.toLocaleTimeString()}
-                      </p>
+                      {/* Model badge for assistant messages */}
+                      {msg.role === 'assistant' && (
+                        <div className="mt-2 flex items-center justify-between">
+                          <ModelBadge modelName={currentModel} wordCount={msg.content.split(/\s+/).length} />
+                          <p className="text-xs opacity-60">
+                            {msg.timestamp.toLocaleTimeString()}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {msg.role === 'user' && (
+                        <p className="text-xs opacity-60 mt-2">
+                          {msg.timestamp.toLocaleTimeString()}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
                 
-                
-                 {/* AI Model Indicator */}
+                {/* AI Model Indicator */}
                 {isLoading && !typingMessage && (
                   <AIModelIndicator modelName={currentModel} isWorking={true} />
                 )}
                 
-                 {/* Typing Message with enhanced animation */}
+                {/* Typing Message */}
                 {typingMessage && <TypingAnimation text={formatTextForDisplay(typingMessage)} />}
                 
                 {/* Loading Animations */}
@@ -574,7 +586,7 @@ const Home = () => {
             )}
           </div>
 
-          {/* Chat Input */}
+          {/* Chat Input - Glassmorphism style */}
           <div className="p-6 border-t border-border">
             <div className="max-w-4xl mx-auto">
               <div className="relative">
@@ -589,7 +601,7 @@ const Home = () => {
                   </div>
                 )}
                 
-                <div className="flex items-center space-x-2 bg-foreground/95 dark:bg-card border-2 border-border rounded-full p-2 shadow-2xl">
+                <div className="flex items-center space-x-2 bg-card/80 backdrop-blur-xl border-2 border-border rounded-full p-2 shadow-xl">
                   <ToolPanel 
                     isOpen={toolPanelOpen}
                     onOpenChange={setToolPanelOpen}
@@ -597,30 +609,19 @@ const Home = () => {
                     onCameraCapture={() => {}}
                     onPDFUpload={(file) => console.log('PDF uploaded:', file.name)}
                     onModeChange={(mode) => setChatMode(mode as any)}
+                    onModelSelect={() => setModelPanelOpen(true)}
                   />
-                  <VoiceAssistant onTranscript={handleVoiceTranscript} />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="shrink-0"
-                    onClick={() => {
-                      setCodeModeActive(true);
-                      setCodeContent('');
-                    }}
-                  >
-                    <Code className="w-5 h-5" />
-                  </Button>
                   <Textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Type your message..."
-                    className="border-0 bg-transparent focus-visible:ring-0 text-foreground min-h-[44px] max-h-[120px] resize-none"
+                    placeholder="Ask NayandeepGPT..."
+                    className="border-0 bg-transparent focus-visible:ring-0 text-foreground min-h-[44px] max-h-[120px] resize-none flex-1"
                     disabled={isLoading || isSearching}
                     rows={1}
                     style={{
                       height: 'auto',
-                      overflowY: message.split('\n').length > 5 ? 'scroll' : 'hidden'
+                      overflowY: message.split('\n').length > 4 ? 'scroll' : 'hidden'
                     }}
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
@@ -628,6 +629,7 @@ const Home = () => {
                       target.style.height = Math.min(target.scrollHeight, 120) + 'px';
                     }}
                   />
+                  <VoiceAssistant onTranscript={handleVoiceTranscript} />
                   <Button
                     size="icon"
                     className={`shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full ${
@@ -654,14 +656,6 @@ const Home = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Right Sidebar - Chat Modes */}
-        <div className="w-16 bg-sidebar border-l border-sidebar-border flex flex-col items-center py-20 mr-2">
-          <ChatModeSelector 
-            currentMode={chatMode}
-            onModeChange={setChatMode}
-          />
         </div>
       </div>
 
