@@ -11,7 +11,9 @@ import {
   Search,
   Mic,
   User,
-  Bot
+  Bot,
+  Brain,
+  Wand2
 } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,6 +45,12 @@ import { LuxuryUILayer } from "@/components/LuxuryUILayer";
 import { AIModelIndicator, ModelBadge } from "@/components/AIModelIndicator";
 import { ImagePreviewModal } from "@/components/ImagePreviewModal";
 import { getWelcomeMessage, saveMemory, saveConversationSummary } from "@/utils/memorySystem";
+import { MessageActions } from "@/components/MessageActions";
+import { PowerToolsPanel } from "@/components/PowerToolsPanel";
+import { MemoryPanel } from "@/components/MemoryPanel";
+import { LiveModelIndicator } from "@/components/LiveModelIndicator";
+import { VisionModePanel } from "@/components/VisionModePanel";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import logo from "@/assets/logo.png";
 
 const Home = () => {
