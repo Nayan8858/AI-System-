@@ -98,6 +98,102 @@ export type Database = {
         }
         Relationships: []
       }
+      user_onboarding_data: {
+        Row: {
+          age_group: string | null
+          ai_comfort_level: string | null
+          badge: string | null
+          clerk_user_id: string
+          communication_tone: string | null
+          country: string | null
+          created_at: string
+          education_level: string | null
+          free_image_credits: number | null
+          frequent_subjects: string[] | null
+          full_name: string | null
+          gender: string | null
+          id: string
+          interests: string[] | null
+          memory_enabled: boolean | null
+          onboarding_completed: boolean | null
+          plan_active: boolean | null
+          plan_type: string | null
+          preferred_coding_language: string | null
+          preferred_language: string | null
+          preferred_name: string | null
+          profession: string | null
+          recurring_tasks: string[] | null
+          response_depth: string | null
+          speed_boost_until: string | null
+          timezone: string | null
+          tutorial_completed: boolean | null
+          updated_at: string
+          usage_intents: string[] | null
+        }
+        Insert: {
+          age_group?: string | null
+          ai_comfort_level?: string | null
+          badge?: string | null
+          clerk_user_id: string
+          communication_tone?: string | null
+          country?: string | null
+          created_at?: string
+          education_level?: string | null
+          free_image_credits?: number | null
+          frequent_subjects?: string[] | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          interests?: string[] | null
+          memory_enabled?: boolean | null
+          onboarding_completed?: boolean | null
+          plan_active?: boolean | null
+          plan_type?: string | null
+          preferred_coding_language?: string | null
+          preferred_language?: string | null
+          preferred_name?: string | null
+          profession?: string | null
+          recurring_tasks?: string[] | null
+          response_depth?: string | null
+          speed_boost_until?: string | null
+          timezone?: string | null
+          tutorial_completed?: boolean | null
+          updated_at?: string
+          usage_intents?: string[] | null
+        }
+        Update: {
+          age_group?: string | null
+          ai_comfort_level?: string | null
+          badge?: string | null
+          clerk_user_id?: string
+          communication_tone?: string | null
+          country?: string | null
+          created_at?: string
+          education_level?: string | null
+          free_image_credits?: number | null
+          frequent_subjects?: string[] | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          interests?: string[] | null
+          memory_enabled?: boolean | null
+          onboarding_completed?: boolean | null
+          plan_active?: boolean | null
+          plan_type?: string | null
+          preferred_coding_language?: string | null
+          preferred_language?: string | null
+          preferred_name?: string | null
+          profession?: string | null
+          recurring_tasks?: string[] | null
+          response_depth?: string | null
+          speed_boost_until?: string | null
+          timezone?: string | null
+          tutorial_completed?: boolean | null
+          updated_at?: string
+          usage_intents?: string[] | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
