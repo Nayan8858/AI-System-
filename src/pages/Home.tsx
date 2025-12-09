@@ -51,6 +51,9 @@ import { MemoryPanel } from "@/components/MemoryPanel";
 import { LiveModelIndicator } from "@/components/LiveModelIndicator";
 import { VisionModePanel } from "@/components/VisionModePanel";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { ThemeSelector } from "@/components/ThemeSelector";
+import { BadgeSystem } from "@/components/BadgeSystem";
+import { ProjectWorkspace } from "@/components/ProjectWorkspace";
 import logo from "@/assets/logo.png";
 
 const Home = () => {
@@ -74,6 +77,8 @@ const Home = () => {
   const [toolPanelOpen, setToolPanelOpen] = useState(false);
   const [modelPanelOpen, setModelPanelOpen] = useState(false);
   const [activeTabId, setActiveTabId] = useState('1');
+  const [powerToolsOpen, setPowerToolsOpen] = useState(false);
+  const [visionModeOpen, setVisionModeOpen] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
   const { 
@@ -101,6 +106,16 @@ const Home = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts({
+    onImageGenerate: () => setChatMode('image-generator'),
+    onWebSearch: () => setChatMode('web-search'),
+    onPDFUpload: () => setToolPanelOpen(true),
+    onCodeMode: () => setCodeModeActive(true),
+    onRegenerate: () => messages.length > 0 && regenerateMessage(messages[messages.length - 1].id || '0'),
+    onNewChat: () => handleNewTab(),
+  });
 
   // Initialize memory system
   useEffect(() => {
@@ -341,6 +356,39 @@ const Home = () => {
         onSave={handleModelSave}
       />
       
+      {/* Power Tools Panel */}
+      <PowerToolsPanel
+        isOpen={powerToolsOpen}
+        onClose={() => setPowerToolsOpen(false)}
+        onToolSelect={(tool, result) => {
+          if (result) setMessage(result);
+        }}
+      />
+      
+      {/* Vision Mode Panel */}
+      <VisionModePanel
+        isOpen={visionModeOpen}
+        onClose={() => setVisionModeOpen(false)}
+        onImageCapture={(imageData) => {
+          setMessage(`Analyze this image`);
+        }}
+        onFileUpload={(file, type) => {
+          if (type === 'image') {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const result = e.target?.result as string;
+              setMessage(`Analyze this image`);
+            };
+            reader.readAsDataURL(file);
+          } else {
+            console.log('PDF uploaded:', file.name);
+          }
+        }}
+        onDrawSubmit={(drawingData) => {
+          setMessage(`Interpret this drawing`);
+        }}
+      />
+      
       <div className="h-screen flex w-full" 
            style={{ background: 'var(--chat-gradient)' }}>
         {/* Top Navigation Bar */}
@@ -556,12 +604,24 @@ const Home = () => {
                         </p>
                       )}
                     </div>
+                    
+                    {/* Magic Actions for AI messages */}
+                    {msg.role === 'assistant' && (
+                      <MessageActions
+                        content={msg.content}
+                        messageId={msg.id || `${index}`}
+                        onRegenerate={(id) => regenerateMessage(id)}
+                      />
+                    )}
                   </div>
                 ))}
                 
-                {/* AI Model Indicator */}
-                {isLoading && !typingMessage && (
-                  <AIModelIndicator modelName={currentModel} isWorking={true} />
+                {/* Live Model Indicator */}
+                {isLoading && (
+                  <LiveModelIndicator 
+                    modelName={currentModel} 
+                    action={isSearching ? 'searching' : 'thinking'} 
+                  />
                 )}
                 
                 {/* Typing Message */}

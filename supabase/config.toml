@@ -1,21 +1,52 @@
 project_id = "auxvsufpyxbyrufpjkkq"
 
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[functions.chat-openai]
+verify_jwt = false
+
 [functions.chat-gemini]
 verify_jwt = false
 
-[functions.chat-openai]
+[functions.google-search]
+verify_jwt = false
+
+[functions.search-images]
 verify_jwt = false
 
 [functions.generate-image]
 verify_jwt = false
 
 [functions.web-search]
-verify_jwt = false
-
-[functions.search-images]
-verify_jwt = false
-
-[functions.google-search]
 verify_jwt = false
 
 [functions.create-checkout]
@@ -28,13 +59,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.api-key-create]
-verify_jwt = true
+verify_jwt = false
 
 [functions.api-key-me]
-verify_jwt = true
+verify_jwt = false
 
 [functions.api-key-regenerate]
-verify_jwt = true
+verify_jwt = false
 
 [functions.analyze-image]
 verify_jwt = false
@@ -43,4 +74,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.smart-web-search]
+verify_jwt = false
+
+[functions.generate-invoice]
 verify_jwt = false
