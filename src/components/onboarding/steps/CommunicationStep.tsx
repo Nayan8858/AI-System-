@@ -2,7 +2,27 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MessageSquare, AlignLeft, Code2 } from 'lucide-react';
-import type { OnboardingData } from '../OnboardingFlow';
+
+interface OnboardingData {
+  fullName: string;
+  preferredName: string;
+  ageGroup: string;
+  gender: string;
+  country: string;
+  timezone: string;
+  profession: string;
+  educationLevel: string;
+  aiComfortLevel: string;
+  preferredLanguage: string;
+  interests: string[];
+  usageIntents: string[];
+  communicationTone: string;
+  responseDepth: string;
+  preferredCodingLanguage: string;
+  memoryEnabled: boolean;
+  recurringTasks: string[];
+  frequentSubjects: string[];
+}
 
 interface CommunicationStepProps {
   data: OnboardingData;
