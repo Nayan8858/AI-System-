@@ -33,9 +33,10 @@ export interface OnboardingData {
 
 interface OnboardingFlowProps {
   onComplete: (data: OnboardingData) => void;
+  isSaving?: boolean;
 }
 
-export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
+export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, isSaving = false }) => {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<OnboardingData>({
     fullName: '',
@@ -172,9 +173,22 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
               <ChevronRight className="w-4 h-4" />
             </Button>
           ) : (
-            <Button onClick={handleComplete} className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:opacity-90">
-              Complete Setup
-              <ChevronRight className="w-4 h-4" />
+            <Button 
+              onClick={handleComplete} 
+              disabled={isSaving}
+              className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 min-w-[140px]"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Complete Setup
+                  <ChevronRight className="w-4 h-4" />
+                </>
+              )}
             </Button>
           )}
         </div>
