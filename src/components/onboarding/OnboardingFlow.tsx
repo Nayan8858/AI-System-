@@ -100,48 +100,62 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-xl"
+      className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-xl overflow-hidden"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="w-full max-w-2xl mx-4">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <motion.h1 
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"
-          >
-            Welcome to NayandeepGPT
-          </motion.h1>
-          <p className="text-muted-foreground mt-2">Step {step} of {totalSteps}</p>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mb-8">
+      {/* Sticky Header with Progress */}
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/30 px-4 py-4 flex-shrink-0">
+        <div className="w-full max-w-2xl mx-auto">
+          <div className="text-center mb-4">
+            <motion.h1 
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"
+            >
+              Welcome to NayandeepGPT
+            </motion.h1>
+            <p className="text-muted-foreground mt-1 text-sm">Step {step} of {totalSteps}</p>
+          </div>
           <Progress value={progress} className="h-2" />
         </div>
+      </div>
 
-        {/* Step Content */}
-        <motion.div
-          className="bg-card/50 backdrop-blur-md rounded-2xl border border-border/50 p-8 shadow-xl"
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -20, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
-        </motion.div>
+      {/* Scrollable Content Area */}
+      <div 
+        className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth px-4"
+        style={{ 
+          maxHeight: 'calc(100vh - 180px)',
+          paddingBottom: '120px'
+        }}
+      >
+        <div className="w-full max-w-2xl mx-auto py-6">
+          <motion.div
+            className="bg-card/50 backdrop-blur-md rounded-2xl border border-border/50 p-6 md:p-8 shadow-xl"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -20, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      </div>
 
-        {/* Navigation */}
-        <div className="flex justify-between mt-6">
+      {/* Fixed Bottom Navigation Bar */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-20 bg-background/90 backdrop-blur-md border-t border-border/50 px-4 py-4 flex-shrink-0"
+        style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+      >
+        <div className="w-full max-w-2xl mx-auto flex justify-between items-center">
           <Button
             variant="ghost"
             onClick={prevStep}
