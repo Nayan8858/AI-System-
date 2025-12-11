@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OnboardingFlow, OnboardingData } from './OnboardingFlow';
@@ -6,7 +6,7 @@ import { RewardAnimation } from './RewardAnimation';
 import { PlanSelection } from './PlanSelection';
 import { DummyPayment } from './DummyPayment';
 import { GuidedTutorial } from './GuidedTutorial';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 type OnboardingPhase = 'checking' | 'onboarding' | 'rewards' | 'plans' | 'payment' | 'tutorial' | 'complete';
 
@@ -14,12 +14,18 @@ interface OnboardingManagerProps {
   children: React.ReactNode;
 }
 
+// Helper to create supabase client with Clerk headers
+const getSupabaseWithClerkHeaders = (clerkUserId: string) => {
+  return supabase;
+};
+
 export const OnboardingManager: React.FC<OnboardingManagerProps> = ({ children }) => {
   const { user, isLoaded } = useUser();
   const { user: clerkUser } = useClerk();
   const [phase, setPhase] = useState<OnboardingPhase>('checking');
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'basic' | 'premium'>('free');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -49,6 +55,18 @@ export const OnboardingManager: React.FC<OnboardingManagerProps> = ({ children }
         return;
       }
 
+      // Check Supabase for existing onboarding data
+      const { data: existingData } = await supabase
+        .from('user_onboarding_data')
+        .select('onboarding_completed, plan_active, tutorial_completed')
+        .eq('clerk_user_id', user.id)
+        .maybeSingle();
+
+      if (existingData?.onboarding_completed && existingData?.plan_active) {
+        setPhase('complete');
+        return;
+      }
+
       // Check if user was created recently (within last 5 minutes) or hasn't completed onboarding
       const createdAt = new Date(user.createdAt || Date.now());
       const now = new Date();
@@ -65,55 +83,110 @@ export const OnboardingManager: React.FC<OnboardingManagerProps> = ({ children }
       }
     } catch (error) {
       console.error('Error checking onboarding status:', error);
-      setPhase('complete');
+      setPhase('onboarding'); // Default to onboarding on error
     }
   };
 
+  // Retry function with exponential backoff
+  const retryOperation = async <T,>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    delay: number = 1000
+  ): Promise<T> => {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(`Attempt ${attempt}/${maxRetries} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, delay * attempt));
+        }
+      }
+    }
+    
+    throw lastError;
+  };
+
   const handleOnboardingComplete = async (data: OnboardingData) => {
+    if (!user) return;
+    
+    setIsSaving(true);
     setOnboardingData(data);
 
-    if (!user) return;
-
     try {
-      // Save to Supabase
-      const { error } = await supabase.from('user_onboarding_data').upsert({
-        clerk_user_id: user.id,
-        full_name: data.fullName,
-        preferred_name: data.preferredName,
-        age_group: data.ageGroup,
-        gender: data.gender,
-        country: data.country,
-        timezone: data.timezone,
-        profession: data.profession,
-        education_level: data.educationLevel,
-        ai_comfort_level: data.aiComfortLevel,
-        preferred_language: data.preferredLanguage,
-        interests: data.interests,
-        usage_intents: data.usageIntents,
-        communication_tone: data.communicationTone,
-        response_depth: data.responseDepth,
-        preferred_coding_language: data.preferredCodingLanguage,
-        memory_enabled: data.memoryEnabled,
-        recurring_tasks: data.recurringTasks,
-        frequent_subjects: data.frequentSubjects,
-        onboarding_completed: true,
-        badge: 'starter',
-        free_image_credits: 5,
-        speed_boost_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      }, {
-        onConflict: 'clerk_user_id',
-      });
+      await retryOperation(async () => {
+        // Prepare data with proper types and defaults
+        const saveData = {
+          clerk_user_id: user.id,
+          full_name: data.fullName?.trim() || null,
+          preferred_name: data.preferredName?.trim() || null,
+          age_group: data.ageGroup || null,
+          gender: data.gender || null,
+          country: data.country || null,
+          timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+          profession: data.profession || null,
+          education_level: data.educationLevel || null,
+          ai_comfort_level: data.aiComfortLevel || null,
+          preferred_language: data.preferredLanguage || 'English',
+          interests: Array.isArray(data.interests) ? data.interests : [],
+          usage_intents: Array.isArray(data.usageIntents) ? data.usageIntents : [],
+          communication_tone: data.communicationTone || 'friendly',
+          response_depth: data.responseDepth || 'detailed',
+          preferred_coding_language: data.preferredCodingLanguage || 'JavaScript',
+          memory_enabled: typeof data.memoryEnabled === 'boolean' ? data.memoryEnabled : true,
+          recurring_tasks: Array.isArray(data.recurringTasks) ? data.recurringTasks : [],
+          frequent_subjects: Array.isArray(data.frequentSubjects) ? data.frequentSubjects : [],
+          onboarding_completed: true,
+          badge: 'starter',
+          free_image_credits: 5,
+          speed_boost_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        };
 
-      if (error) throw error;
+        // First check if record exists
+        const { data: existing } = await supabase
+          .from('user_onboarding_data')
+          .select('id')
+          .eq('clerk_user_id', user.id)
+          .maybeSingle();
 
+        let result;
+        if (existing) {
+          // Update existing record
+          result = await supabase
+            .from('user_onboarding_data')
+            .update(saveData)
+            .eq('clerk_user_id', user.id);
+        } else {
+          // Insert new record
+          result = await supabase
+            .from('user_onboarding_data')
+            .insert(saveData);
+        }
+
+        if (result.error) {
+          console.error('Supabase error:', result.error);
+          throw new Error(result.error.message);
+        }
+
+        return result;
+      }, 3, 1000);
+
+      // Success!
+      setIsSaving(false);
+      toast.success('Preferences saved successfully!');
+      
+      // Small delay to show success state
+      await new Promise(resolve => setTimeout(resolve, 500));
       setPhase('rewards');
+      
     } catch (error) {
-      console.error('Error saving onboarding data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save your preferences. Please try again.',
-        variant: 'destructive',
-      });
+      console.error('Error saving onboarding data after retries:', error);
+      setIsSaving(false);
+      toast.error('Failed to save preferences. Please try again.');
     }
   };
 
@@ -139,11 +212,7 @@ export const OnboardingManager: React.FC<OnboardingManagerProps> = ({ children }
         }
       } catch (error) {
         console.error('Error creating checkout:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to start checkout. Please try again.',
-          variant: 'destructive',
-        });
+        toast.error('Failed to start checkout. Please try again.');
       }
     }
   };
@@ -158,10 +227,7 @@ export const OnboardingManager: React.FC<OnboardingManagerProps> = ({ children }
         plan_active: true,
       }).eq('clerk_user_id', user.id);
 
-      toast({
-        title: 'Plan Activated!',
-        description: 'Your Free Plan is now active. Enjoy NayandeepGPT!',
-      });
+      toast.success('Your Free Plan is now active. Enjoy NayandeepGPT!');
 
       setPhase('tutorial');
     } catch (error) {
@@ -198,7 +264,7 @@ export const OnboardingManager: React.FC<OnboardingManagerProps> = ({ children }
   return (
     <>
       {phase === 'onboarding' && (
-        <OnboardingFlow onComplete={handleOnboardingComplete} />
+        <OnboardingFlow onComplete={handleOnboardingComplete} isSaving={isSaving} />
       )}
       
       {phase === 'rewards' && (
