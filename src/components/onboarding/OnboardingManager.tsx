@@ -7,6 +7,7 @@ import { PlanSelection } from './PlanSelection';
 import { DummyPayment } from './DummyPayment';
 import { GuidedTutorial } from './GuidedTutorial';
 import { toast } from 'sonner';
+import { taskOptions, subjectOptions } from './steps/memoryOptions';
 
 type OnboardingPhase = 'checking' | 'onboarding' | 'rewards' | 'plans' | 'payment' | 'tutorial' | 'complete';
 
@@ -119,8 +120,8 @@ export const OnboardingManager: React.FC<OnboardingManagerProps> = ({ children }
 
     try {
       await retryOperation(async () => {
-        // Prepare data with proper types and defaults
-        const saveData = {
+        // Prepare data for legacy user_onboarding_data table
+        const onboardingSaveData = {
           clerk_user_id: user.id,
           full_name: data.fullName?.trim() || null,
           preferred_name: data.preferredName?.trim() || null,
@@ -146,33 +147,80 @@ export const OnboardingManager: React.FC<OnboardingManagerProps> = ({ children }
           speed_boost_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         };
 
-        // First check if record exists
-        const { data: existing } = await supabase
+        // Prepare data for new user_preferences table
+        const preferencesSaveData = {
+          user_id: user.id,
+          name: data.preferredName?.trim() || data.fullName?.trim() || null,
+          age_group: data.ageGroup || null,
+          country: data.country || null,
+          timezone: data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+          profession: data.profession || null,
+          education: data.educationLevel || null,
+          ai_level: data.aiComfortLevel || null,
+          language: data.preferredLanguage || 'English',
+          primary_uses: Array.isArray(data.usageIntents) ? data.usageIntents : [],
+          tone: data.communicationTone || 'friendly',
+          depth: data.responseDepth || 'detailed',
+          coding_language: data.preferredCodingLanguage || 'JavaScript',
+          memory_enabled: typeof data.memoryEnabled === 'boolean' ? data.memoryEnabled : true,
+          // Map recurringTasks / frequentSubjects string arrays to integer indices to satisfy integer[] type
+          recurring_tasks: Array.isArray(data.recurringTasks)
+            ? data.recurringTasks.map(task => Math.max(0, taskOptions.indexOf(task))).filter(i => i >= 0)
+            : [],
+          subjects: Array.isArray(data.frequentSubjects)
+            ? data.frequentSubjects.map(subject => Math.max(0, subjectOptions.indexOf(subject))).filter(i => i >= 0)
+            : [],
+        } as const;
+
+        // Upsert into user_onboarding_data (legacy)
+        const { data: existingOnboarding } = await supabase
           .from('user_onboarding_data')
           .select('id')
           .eq('clerk_user_id', user.id)
           .maybeSingle();
 
-        let result;
-        if (existing) {
-          // Update existing record
-          result = await supabase
+        let onboardingResult;
+        if (existingOnboarding) {
+          onboardingResult = await supabase
             .from('user_onboarding_data')
-            .update(saveData)
+            .update(onboardingSaveData)
             .eq('clerk_user_id', user.id);
         } else {
-          // Insert new record
-          result = await supabase
+          onboardingResult = await supabase
             .from('user_onboarding_data')
-            .insert(saveData);
+            .insert(onboardingSaveData);
         }
 
-        if (result.error) {
-          console.error('Supabase error:', result.error);
-          throw new Error(result.error.message);
+        if (onboardingResult.error) {
+          console.error('Supabase onboarding error:', onboardingResult.error);
+          throw new Error(onboardingResult.error.message);
         }
 
-        return result;
+        // Upsert into user_preferences (new canonical preferences table)
+        const { data: existingPrefs } = await supabase
+          .from('user_preferences')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        let prefsResult;
+        if (existingPrefs) {
+          prefsResult = await supabase
+            .from('user_preferences')
+            .update(preferencesSaveData)
+            .eq('user_id', user.id);
+        } else {
+          prefsResult = await supabase
+            .from('user_preferences')
+            .insert(preferencesSaveData);
+        }
+
+        if (prefsResult.error) {
+          console.error('Supabase preferences error:', prefsResult.error);
+          throw new Error(prefsResult.error.message);
+        }
+
+        return { onboardingResult, prefsResult };
       }, 3, 1000);
 
       // Success!
