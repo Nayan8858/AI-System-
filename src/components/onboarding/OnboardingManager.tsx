@@ -163,64 +163,37 @@ export const OnboardingManager: React.FC<OnboardingManagerProps> = ({ children }
           depth: data.responseDepth || 'detailed',
           coding_language: data.preferredCodingLanguage || 'JavaScript',
           memory_enabled: typeof data.memoryEnabled === 'boolean' ? data.memoryEnabled : true,
-          // Map recurringTasks / frequentSubjects string arrays to integer indices to satisfy integer[] type
           recurring_tasks: Array.isArray(data.recurringTasks)
-            ? data.recurringTasks.map(task => Math.max(0, taskOptions.indexOf(task))).filter(i => i >= 0)
+            ? data.recurringTasks
+                .map((task) => taskOptions.indexOf(task))
+                .filter((i) => i >= 0)
             : [],
           subjects: Array.isArray(data.frequentSubjects)
-            ? data.frequentSubjects.map(subject => Math.max(0, subjectOptions.indexOf(subject))).filter(i => i >= 0)
+            ? data.frequentSubjects
+                .map((subject) => subjectOptions.indexOf(subject))
+                .filter((i) => i >= 0)
             : [],
         } as const;
 
-        // Upsert into user_onboarding_data (legacy)
-        const { data: existingOnboarding } = await supabase
-          .from('user_onboarding_data')
-          .select('id')
-          .eq('clerk_user_id', user.id)
-          .maybeSingle();
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('save-onboarding', {
+          body: {
+            clerkUserId: user.id,
+            onboardingData: onboardingSaveData,
+            preferencesData: preferencesSaveData,
+          },
+        });
 
-        let onboardingResult;
-        if (existingOnboarding) {
-          onboardingResult = await supabase
-            .from('user_onboarding_data')
-            .update(onboardingSaveData)
-            .eq('clerk_user_id', user.id);
-        } else {
-          onboardingResult = await supabase
-            .from('user_onboarding_data')
-            .insert(onboardingSaveData);
+        if (fnError) {
+          console.error('save-onboarding function error:', fnError);
+          throw new Error(fnError.message || 'Failed to save onboarding data');
         }
 
-        if (onboardingResult.error) {
-          console.error('Supabase onboarding error:', onboardingResult.error);
-          throw new Error(onboardingResult.error.message);
+        if (!fnData?.success) {
+          console.error('save-onboarding function returned unsuccessful response', fnData);
+          throw new Error('Failed to save onboarding data');
         }
 
-        // Upsert into user_preferences (new canonical preferences table)
-        const { data: existingPrefs } = await supabase
-          .from('user_preferences')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        let prefsResult;
-        if (existingPrefs) {
-          prefsResult = await supabase
-            .from('user_preferences')
-            .update(preferencesSaveData)
-            .eq('user_id', user.id);
-        } else {
-          prefsResult = await supabase
-            .from('user_preferences')
-            .insert(preferencesSaveData);
-        }
-
-        if (prefsResult.error) {
-          console.error('Supabase preferences error:', prefsResult.error);
-          throw new Error(prefsResult.error.message);
-        }
-
-        return { onboardingResult, prefsResult };
+        return fnData;
       }, 3, 1000);
 
       // Success!
