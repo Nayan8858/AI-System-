@@ -194,6 +194,72 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          age_group: string | null
+          ai_level: string | null
+          coding_language: string | null
+          country: string | null
+          created_at: string
+          depth: string | null
+          education: string | null
+          id: string
+          language: string | null
+          memory_enabled: boolean | null
+          name: string | null
+          primary_uses: string[] | null
+          profession: string | null
+          recurring_tasks: number[] | null
+          subjects: number[] | null
+          timezone: string | null
+          tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age_group?: string | null
+          ai_level?: string | null
+          coding_language?: string | null
+          country?: string | null
+          created_at?: string
+          depth?: string | null
+          education?: string | null
+          id?: string
+          language?: string | null
+          memory_enabled?: boolean | null
+          name?: string | null
+          primary_uses?: string[] | null
+          profession?: string | null
+          recurring_tasks?: number[] | null
+          subjects?: number[] | null
+          timezone?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age_group?: string | null
+          ai_level?: string | null
+          coding_language?: string | null
+          country?: string | null
+          created_at?: string
+          depth?: string | null
+          education?: string | null
+          id?: string
+          language?: string | null
+          memory_enabled?: boolean | null
+          name?: string | null
+          primary_uses?: string[] | null
+          profession?: string | null
+          recurring_tasks?: number[] | null
+          subjects?: number[] | null
+          timezone?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

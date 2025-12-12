@@ -4,14 +4,13 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Brain, ListTodo, Bookmark } from 'lucide-react';
 import type { OnboardingData } from '../OnboardingFlow';
+import { taskOptions, subjectOptions } from './memoryOptions';
 
 interface MemoryStepProps {
   data: OnboardingData;
   onUpdate: (updates: Partial<OnboardingData>) => void;
 }
 
-const taskOptions = ['Daily Summary', 'Code Reviews', 'Writing Assistance', 'Research Help', 'Meeting Notes', 'Learning Sessions'];
-const subjectOptions = ['Programming', 'Mathematics', 'Science', 'Languages', 'History', 'Business', 'Art & Design', 'Music', 'Health', 'Technology'];
 
 export const MemoryStep: React.FC<MemoryStepProps> = ({ data, onUpdate }) => {
   const toggleTask = (task: string) => {
