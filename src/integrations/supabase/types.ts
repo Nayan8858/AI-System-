@@ -10,90 +10,42 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
       analytics_usage: {
         Row: {
-          cost_usd: number
+          cost_usd: number | null
           created_at: string
           id: string
-          image_analysis: boolean
-          model_used: string
-          pdf_uploaded: boolean
+          image_analysis: boolean | null
+          model_used: string | null
+          pdf_uploaded: boolean | null
           response_time_ms: number | null
-          tokens_or_words: number
+          tokens_or_words: number | null
           user_id: string
         }
         Insert: {
-          cost_usd?: number
+          cost_usd?: number | null
           created_at?: string
           id?: string
-          image_analysis?: boolean
-          model_used: string
-          pdf_uploaded?: boolean
+          image_analysis?: boolean | null
+          model_used?: string | null
+          pdf_uploaded?: boolean | null
           response_time_ms?: number | null
-          tokens_or_words?: number
+          tokens_or_words?: number | null
           user_id: string
         }
         Update: {
-          cost_usd?: number
+          cost_usd?: number | null
           created_at?: string
           id?: string
-          image_analysis?: boolean
-          model_used?: string
-          pdf_uploaded?: boolean
+          image_analysis?: boolean | null
+          model_used?: string | null
+          pdf_uploaded?: boolean | null
           response_time_ms?: number | null
-          tokens_or_words?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      billing_records: {
-        Row: {
-          amount_usd: number
-          created_at: string
-          due_date: string | null
-          id: string
-          invoice_sent: boolean
-          is_paid: boolean
-          period_end: string
-          period_start: string
-          total_analysis: number
-          total_images: number
-          total_words: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount_usd?: number
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          invoice_sent?: boolean
-          is_paid?: boolean
-          period_end: string
-          period_start: string
-          total_analysis?: number
-          total_images?: number
-          total_words?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount_usd?: number
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          invoice_sent?: boolean
-          is_paid?: boolean
-          period_end?: string
-          period_start?: string
-          total_analysis?: number
-          total_images?: number
-          total_words?: number
-          updated_at?: string
+          tokens_or_words?: number | null
           user_id?: string
         }
         Relationships: []
